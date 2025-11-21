@@ -257,36 +257,4 @@ class _DatabaseViewScreenState extends State<DatabaseViewScreen> {
       child: Text(text, style: const TextStyle(fontSize: 13)),
     );
   }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Eliminar base de datos'),
-          content: Text(
-            '¿Estás seguro de que deseas eliminar "${widget.databaseName}"?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.pop(context); // Cerrar diálogo
-                Navigator.pop(context, {'deleted': true}); // Regresar
-                // TODO: Eliminar de API
-              },
-              child: const Text('Eliminar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

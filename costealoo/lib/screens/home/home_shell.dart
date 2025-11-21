@@ -2,9 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
 import 'package:costealoo/widgets/section_card.dart';
+import 'package:costealoo/services/sheet_service.dart';
+import 'package:costealoo/screens/sheets/new_sheet_screen.dart';
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  List<Map<String, dynamic>> _sheets = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSheets();
+  }
+
+  Future<void> _loadSheets() async {
+    try {
+      final sheets = await SheetService().getSheets();
+      if (mounted) {
+        setState(() {
+          _sheets = sheets;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar planillas: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +55,10 @@ class HomeShell extends StatelessWidget {
             child: Container(
               color: CostealoColors.primaryLight,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -42,8 +79,7 @@ class HomeShell extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Row(
                               children: [
                                 Expanded(
@@ -51,13 +87,17 @@ class HomeShell extends StatelessWidget {
                                     decoration: InputDecoration(
                                       hintText: 'Buscar por nombre de planilla',
                                       border: InputBorder.none,
-                                      hintStyle:
-                                          TextStyle(color: Colors.grey[500]),
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey[500],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                Icon(Icons.search,
-                                    color: Colors.grey[600], size: 22),
+                                Icon(
+                                  Icons.search,
+                                  color: Colors.grey[600],
+                                  size: 22,
+                                ),
                               ],
                             ),
                           ),
@@ -69,48 +109,72 @@ class HomeShell extends StatelessWidget {
 
                     // Contenido scrolleable
                     Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Borradores',
-                              style: textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: 12),
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : RefreshIndicator(
+                              onRefresh: _loadSheets,
+                              child: SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Borradores',
+                                      style: textTheme.headlineSmall,
+                                    ),
+                                    const SizedBox(height: 12),
 
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 16,
-                              children: const [
-                                SectionCard(title: 'Nombre planilla'),
-                                SectionCard(title: 'Nombre planilla'),
-                                SectionCard(title: 'Nombre planilla'),
-                                SectionCard(title: 'Nombre planilla'),
-                              ],
-                            ),
+                                    Wrap(
+                                      spacing: 16,
+                                      runSpacing: 16,
+                                      children: const [
+                                        SectionCard(title: 'Nombre planilla'),
+                                        SectionCard(title: 'Nombre planilla'),
+                                      ],
+                                    ),
 
-                            const SizedBox(height: 32),
+                                    const SizedBox(height: 32),
 
-                            Text(
-                              'Más recientes',
-                              style: textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: 12),
+                                    Text(
+                                      'Más recientes',
+                                      style: textTheme.headlineSmall,
+                                    ),
+                                    const SizedBox(height: 12),
 
-                            Wrap(
-                              spacing: 16,
-                              runSpacing: 16,
-                              children: const [
-                                SectionCard(title: 'Nombre planilla'),
-                                SectionCard(title: 'Nombre planilla'),
-                                SectionCard(title: 'Nombre planilla'),
-                              ],
+                                    if (_sheets.isEmpty)
+                                      const Text('No hay planillas publicadas')
+                                    else
+                                      Wrap(
+                                        spacing: 16,
+                                        runSpacing: 16,
+                                        children: _sheets.map((sheet) {
+                                          return GestureDetector(
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      NewSheetScreen(
+                                                        sheetData: sheet,
+                                                        isReadOnly: true,
+                                                      ),
+                                                ),
+                                              );
+                                              // Recargar al volver por si hubo cambios (aunque es read-only por ahora)
+                                              _loadSheets();
+                                            },
+                                            child: SectionCard(
+                                              title:
+                                                  sheet['name'] ?? 'Sin nombre',
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    const SizedBox(height: 40),
+                                  ],
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),

@@ -1,17 +1,37 @@
-import 'package:costealoo/services/auth_service.dart';
-import 'package:costealoo/services/api_client.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DatabaseService {
-  final ApiClient _apiClient = AuthService().apiClient;
-
   // Mock storage (static to persist across instances)
-  static final List<Map<String, dynamic>> _mockDatabases = [];
+  static List<Map<String, dynamic>> _mockDatabases = [];
+  static bool _isLoaded = false;
+
+  Future<void> _ensureLoaded() async {
+    if (_isLoaded) return;
+    final prefs = await SharedPreferences.getInstance();
+    final String? stored = prefs.getString('mock_databases');
+    if (stored != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(stored);
+        _mockDatabases = decoded.cast<Map<String, dynamic>>();
+      } catch (e) {
+        print('Error loading databases: $e');
+      }
+    }
+    _isLoaded = true;
+  }
+
+  Future<void> _saveToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mock_databases', jsonEncode(_mockDatabases));
+  }
 
   /// Create a new database
   Future<Map<String, dynamic>> createDatabase({
     required String name,
     required List<Map<String, dynamic>> products,
   }) async {
+    await _ensureLoaded();
     // Simulate API delay
     await Future.delayed(const Duration(seconds: 1));
 
@@ -22,23 +42,10 @@ class DatabaseService {
     };
 
     _mockDatabases.add(newDb);
+    await _saveToPrefs();
 
     // Return success response
     return newDb;
-
-    /* 
-    // API Implementation (Commented out until backend is ready)
-    try {
-      final response = await _apiClient.post(
-        '/Database',
-        body: {'name': name, 'products': products},
-        includeAuth: true,
-      );
-      return response;
-    } catch (e) {
-      rethrow;
-    }
-    */
   }
 
   /// Update a database (e.g. rename)
@@ -46,6 +53,7 @@ class DatabaseService {
     required String id,
     required String name,
   }) async {
+    await _ensureLoaded();
     // Simulate API delay
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -53,43 +61,16 @@ class DatabaseService {
     final index = _mockDatabases.indexWhere((db) => db['id'] == id);
     if (index != -1) {
       _mockDatabases[index]['name'] = name;
+      await _saveToPrefs();
     }
-
-    /*
-    // API Implementation
-    try {
-      await _apiClient.put(
-        '/Database/$id',
-        body: {'name': name},
-        includeAuth: true,
-      );
-    } catch (e) {
-      rethrow;
-    }
-    */
   }
 
   /// Get all databases
   Future<List<Map<String, dynamic>>> getDatabases() async {
+    await _ensureLoaded();
     // Simulate API delay
     await Future.delayed(const Duration(milliseconds: 500));
 
     return List<Map<String, dynamic>>.from(_mockDatabases);
-
-    /*
-    // API Implementation (Commented out until backend is ready)
-    try {
-      final response = await _apiClient.get('/Database', includeAuth: true);
-
-      if (response['data'] != null && response['data'] is List) {
-        return List<Map<String, dynamic>>.from(response['data']);
-      }
-
-      return [];
-    } catch (e) {
-      // If 404 or empty, return empty list
-      return [];
-    }
-    */
   }
 }

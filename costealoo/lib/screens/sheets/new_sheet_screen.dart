@@ -4,24 +4,37 @@ import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
 import 'package:costealoo/services/database_service.dart';
 import 'package:costealoo/services/api_client.dart';
+import 'package:costealoo/services/sheet_service.dart';
 
 class NewSheetScreen extends StatefulWidget {
   final List<Map<String, dynamic>>? preLoadedProducts;
+  final Map<String, dynamic>? sheetData;
+  final bool isReadOnly;
 
-  const NewSheetScreen({super.key, this.preLoadedProducts});
+  const NewSheetScreen({
+    super.key,
+    this.preLoadedProducts,
+    this.sheetData,
+    this.isReadOnly = false,
+  });
 
   @override
   State<NewSheetScreen> createState() => _NewSheetScreenState();
 }
 
 class _NewSheetScreenState extends State<NewSheetScreen> {
+  // Nombre de la planilla
+  final TextEditingController _sheetNameController = TextEditingController();
+
   // Ingredientes
   final List<TextEditingController> _ingredientNames = [];
   final List<TextEditingController> _ingredientQuantities = [];
+  final List<TextEditingController> _ingredientAmounts = [];
 
   // Costos adicionales
   final List<TextEditingController> _extraNames = [];
   final List<TextEditingController> _extraQuantities = [];
+  final List<TextEditingController> _extraAmounts = [];
 
   // Totales y datos generales (por ahora solo UI)
   final TextEditingController _totalController = TextEditingController(
@@ -55,6 +68,8 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   final TextEditingController _unitCostController = TextEditingController(
     text: '0,00',
   );
+  final TextEditingController _productQuantityController =
+      TextEditingController(text: '1');
   final TextEditingController _suggestedPriceController = TextEditingController(
     text: '0,00',
   );
@@ -66,16 +81,75 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   );
 
   String _currency = 'Bs';
+  bool _isPublishing = false;
 
   @override
   void initState() {
     super.initState();
-    _addIngredientRow();
-    _addExtraCostRow();
+
+    if (widget.sheetData != null) {
+      _loadSheetData();
+    } else {
+      _addIngredientRow();
+      _addExtraCostRow();
+    }
 
     // Listeners para recálculos
     _cantidadRacionController.addListener(_calculateValues);
+    _productQuantityController.addListener(_calculateValues);
     _salePriceController.addListener(_calculateMargin);
+  }
+
+  void _loadSheetData() {
+    final data = widget.sheetData!;
+    _sheetNameController.text = data['name'] ?? '';
+    _currency = data['currency'] ?? 'Bs';
+    _cantidadRacionController.text = data['rationQty']?.toString() ?? '';
+    _productQuantityController.text = data['productQty']?.toString() ?? '1';
+    _salePriceController.text = data['salePrice']?.toString() ?? '';
+
+    // Cargar ingredientes
+    final ingredients = data['ingredients'] as List<dynamic>? ?? [];
+    for (var ing in ingredients) {
+      final nameCtrl = TextEditingController(text: ing['name']);
+      final qtyCtrl = TextEditingController(text: ing['cost']?.toString());
+      final amountCtrl = TextEditingController(text: ing['amount']?.toString());
+
+      if (!widget.isReadOnly) {
+        qtyCtrl.addListener(_calculateValues);
+        amountCtrl.addListener(_calculateValues);
+      }
+
+      _ingredientNames.add(nameCtrl);
+      _ingredientQuantities.add(qtyCtrl);
+      _ingredientAmounts.add(amountCtrl);
+    }
+
+    // Cargar extras
+    final extras = data['extras'] as List<dynamic>? ?? [];
+    for (var ext in extras) {
+      final nameCtrl = TextEditingController(text: ext['name']);
+      final qtyCtrl = TextEditingController(text: ext['unitPrice']?.toString());
+      final amountCtrl = TextEditingController(text: ext['amount']?.toString());
+
+      if (!widget.isReadOnly) {
+        qtyCtrl.addListener(_calculateValues);
+        amountCtrl.addListener(_calculateValues);
+      }
+
+      _extraNames.add(nameCtrl);
+      _extraQuantities.add(qtyCtrl);
+      _extraAmounts.add(amountCtrl);
+    }
+
+    // Si no hay filas, añadir al menos una vacía (solo si no es readOnly)
+    if (!widget.isReadOnly && _ingredientNames.isEmpty) _addIngredientRow();
+    if (!widget.isReadOnly && _extraNames.isEmpty) _addExtraCostRow();
+
+    // Calcular valores iniciales
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _calculateValues();
+    });
   }
 
   void _calculateValues() {
@@ -84,34 +158,32 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
 
     // Sumar ingredientes
     for (int i = 0; i < _ingredientQuantities.length; i++) {
-      // Asumimos que el costo ya está en el campo de cantidad por ahora
-      // O mejor, necesitamos un campo de costo unitario por ingrediente.
-      // PERO el mockup muestra: Nombre | Cantidad (xx,xx) | Total ($$$,$$)
-      // El mockup es un poco confuso. Dice "Cantidad" y luego "Total".
-      // Asumiremos que el usuario ingresa el COSTO TOTAL del ingrediente por ahora,
-      // o que la cantidad * precio_base = total.
-      // Dado el mockup, parece que "Cantidad" es el costo directo si no hay precio unitario.
-      // REVISIÓN: El mockup tiene "Cantidad" (editable) y al lado "Moneda".
-      // Y luego "Total" abajo de la lista.
-      // Vamos a asumir que el input es el COSTO del ingrediente para simplificar,
-      // o que implementaremos precio * cantidad luego.
-      // Por ahora, sumaremos los valores ingresados.
-
       final val =
           double.tryParse(_ingredientQuantities[i].text.replaceAll(',', '.')) ??
           0.0;
       totalIngredients += val;
     }
 
-    // Sumar extras
-    for (int i = 0; i < _extraQuantities.length; i++) {
+    // Sumar pesos (cantidades físicas)
+    double totalWeight = 0.0;
+    for (int i = 0; i < _ingredientAmounts.length; i++) {
       final val =
+          double.tryParse(_ingredientAmounts[i].text.replaceAll(',', '.')) ??
+          0.0;
+      totalWeight += val;
+    }
+    _pesoTotalController.text = totalWeight.toStringAsFixed(2);
+
+    // Sumar extras (Cantidad * Precio Unitario)
+    for (int i = 0; i < _extraQuantities.length; i++) {
+      final amount =
+          double.tryParse(_extraAmounts[i].text.replaceAll(',', '.')) ?? 0.0;
+      final unitPrice =
           double.tryParse(_extraQuantities[i].text.replaceAll(',', '.')) ?? 0.0;
-      totalExtras += val;
+      totalExtras += amount * unitPrice;
     }
 
     // 1. Total Ingredientes + Extras
-    // Nota: El mockup tiene un "Total" debajo de ingredientes y otro debajo de extras.
     _totalController.text = totalIngredients.toStringAsFixed(2);
     _totalFinalController.text = totalExtras.toStringAsFixed(2);
 
@@ -129,15 +201,23 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     _taxController.text = tax.toStringAsFixed(2);
 
     // 5. Costo total
-    final totalCost = netCost + tax; // o netCost * 1.16
+    final totalCost = netCost + tax;
     _totalCostController.text = totalCost.toStringAsFixed(2);
 
     // 6. Costo unitario
     final rationQty =
         double.tryParse(_cantidadRacionController.text.replaceAll(',', '.')) ??
         1.0;
-    final unitCost = rationQty > 0 ? totalCost / rationQty : 0.0;
+    final productQty =
+        double.tryParse(_productQuantityController.text.replaceAll(',', '.')) ??
+        1.0;
+
+    final unitCost = productQty > 0 ? totalCost / productQty : 0.0;
     _unitCostController.text = unitCost.toStringAsFixed(2);
+
+    // Calcular peso unitario
+    final unitWeight = rationQty > 0 ? totalWeight / rationQty : 0.0;
+    _pesoUnitarioController.text = unitWeight.toStringAsFixed(2);
 
     // 7. Precio sugerido (Costo unitario + 20%)
     final suggestedPrice = unitCost * 1.20;
@@ -153,26 +233,186 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     final unitCost =
         double.tryParse(_unitCostController.text.replaceAll(',', '.')) ?? 0.0;
 
-    if (salePrice > 0) {
-      final margin = ((salePrice - unitCost) / salePrice) * 100;
+    if (unitCost > 0) {
+      final margin = ((salePrice - unitCost) / unitCost) * 100;
       _marginController.text = '${margin.toStringAsFixed(2)} %';
     } else {
       _marginController.text = '0,00 %';
     }
   }
 
+  Future<void> _publishSheet() async {
+    if (_sheetNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingrese un nombre para la planilla'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isPublishing = true);
+
+    try {
+      // Recopilar datos
+      final ingredients = <Map<String, dynamic>>[];
+      for (int i = 0; i < _ingredientNames.length; i++) {
+        if (_ingredientNames[i].text.isNotEmpty) {
+          ingredients.add({
+            'name': _ingredientNames[i].text,
+            'amount':
+                double.tryParse(
+                  _ingredientAmounts[i].text.replaceAll(',', '.'),
+                ) ??
+                0.0,
+            'cost':
+                double.tryParse(
+                  _ingredientQuantities[i].text.replaceAll(',', '.'),
+                ) ??
+                0.0,
+          });
+        }
+      }
+
+      final extras = <Map<String, dynamic>>[];
+      for (int i = 0; i < _extraNames.length; i++) {
+        if (_extraNames[i].text.isNotEmpty) {
+          extras.add({
+            'name': _extraNames[i].text,
+            'amount':
+                double.tryParse(_extraAmounts[i].text.replaceAll(',', '.')) ??
+                0.0,
+            'unitPrice':
+                double.tryParse(
+                  _extraQuantities[i].text.replaceAll(',', '.'),
+                ) ??
+                0.0,
+          });
+        }
+      }
+
+      final sheetData = {
+        'name': _sheetNameController.text,
+        'currency': _currency,
+        'rationQty':
+            double.tryParse(
+              _cantidadRacionController.text.replaceAll(',', '.'),
+            ) ??
+            0.0,
+        'productQty':
+            double.tryParse(
+              _productQuantityController.text.replaceAll(',', '.'),
+            ) ??
+            1.0,
+        'salePrice':
+            double.tryParse(_salePriceController.text.replaceAll(',', '.')) ??
+            0.0,
+        'ingredients': ingredients,
+        'extras': extras,
+        'totalCost':
+            double.tryParse(_totalCostController.text.replaceAll(',', '.')) ??
+            0.0,
+        'unitCost':
+            double.tryParse(_unitCostController.text.replaceAll(',', '.')) ??
+            0.0,
+        'margin': _marginController.text,
+      };
+
+      await SheetService().createSheet(sheetData);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Planilla publicada con éxito')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al publicar: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
+    }
+  }
+
+  Future<void> _editSheetName() async {
+    if (widget.sheetData == null || widget.sheetData!['id'] == null) return;
+
+    final nameController = TextEditingController(
+      text: _sheetNameController.text,
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar nombre'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre de la planilla',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) return;
+
+              try {
+                await SheetService().updateSheet(widget.sheetData!['id'], {
+                  'name': nameController.text.trim(),
+                });
+
+                if (mounted) {
+                  setState(() {
+                    _sheetNameController.text = nameController.text.trim();
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Nombre actualizado')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al actualizar: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _sheetNameController.dispose();
     for (final c in _ingredientNames) {
       c.dispose();
     }
     for (final c in _ingredientQuantities) {
       c.dispose();
     }
+    for (final c in _ingredientAmounts) {
+      c.dispose();
+    }
     for (final c in _extraNames) {
       c.dispose();
     }
     for (final c in _extraQuantities) {
+      c.dispose();
+    }
+    for (final c in _extraAmounts) {
       c.dispose();
     }
     _totalController.dispose();
@@ -185,6 +425,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     _taxController.dispose();
     _totalCostController.dispose();
     _unitCostController.dispose();
+    _productQuantityController.dispose();
     _suggestedPriceController.dispose();
     _salePriceController.dispose();
     _marginController.dispose();
@@ -195,9 +436,14 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     setState(() {
       final nameCtrl = TextEditingController();
       final qtyCtrl = TextEditingController();
+      final amountCtrl = TextEditingController();
       qtyCtrl.addListener(_calculateValues); // Escuchar cambios
+      amountCtrl.addListener(
+        _calculateValues,
+      ); // Escuchar cambios en cantidad física
       _ingredientNames.add(nameCtrl);
       _ingredientQuantities.add(qtyCtrl);
+      _ingredientAmounts.add(amountCtrl);
     });
   }
 
@@ -205,9 +451,12 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     setState(() {
       final nameCtrl = TextEditingController();
       final qtyCtrl = TextEditingController();
+      final amountCtrl = TextEditingController();
       qtyCtrl.addListener(_calculateValues); // Escuchar cambios
+      amountCtrl.addListener(_calculateValues);
       _extraNames.add(nameCtrl);
       _extraQuantities.add(qtyCtrl);
+      _extraAmounts.add(amountCtrl);
     });
   }
 
@@ -240,11 +489,36 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Nueva planilla',
-                            style: textTheme.headlineMedium,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                widget.isReadOnly
+                                    ? 'Detalle de planilla'
+                                    : 'Nueva planilla',
+                                style: textTheme.headlineMedium,
+                              ),
+                              if (widget.isReadOnly)
+                                TextButton.icon(
+                                  onPressed: _editSheetName,
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('Editar nombre'),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 20),
+
+                          // Nombre de la planilla
+                          TextField(
+                            controller: _sheetNameController,
+                            readOnly: widget.isReadOnly,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre de la planilla',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
                           Expanded(
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,21 +544,22 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                         _buildEditableDecimalField(
                                           label: 'Total',
                                           controller: _totalController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildEditableDecimalField(
-                                          label: 'Peso total',
-                                          controller: _pesoTotalController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildEditableDecimalField(
-                                          label: 'Peso unitario',
-                                          controller: _pesoUnitarioController,
+                                          readOnly: true, // Siempre calculado
                                         ),
                                         const SizedBox(height: 14),
                                         _buildEditableDecimalField(
                                           label: 'Cantidad de ración',
                                           controller: _cantidadRacionController,
+                                        ),
+                                        const SizedBox(height: 14),
+                                        _buildReadOnlyField(
+                                          label: 'Peso total',
+                                          controller: _pesoTotalController,
+                                        ),
+                                        const SizedBox(height: 14),
+                                        _buildReadOnlyField(
+                                          label: 'Peso unitario',
+                                          controller: _pesoUnitarioController,
                                         ),
                                         const SizedBox(height: 28),
 
@@ -327,9 +602,23 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                           controller: _totalCostController,
                                         ),
                                         const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Costo unitario',
-                                          controller: _unitCostController,
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _buildReadOnlyField(
+                                                label: 'Costo unitario',
+                                                controller: _unitCostController,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: _buildEditableDecimalField(
+                                                label: 'Cant. producto',
+                                                controller:
+                                                    _productQuantityController,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 28),
 
@@ -350,36 +639,48 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                         const SizedBox(height: 40),
 
                                         // Botones de acción
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            OutlinedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    CostealoColors.primary,
-                                                foregroundColor: Colors.white,
+                                        if (!widget.isReadOnly)
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              OutlinedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: const Text('Cancelar'),
                                               ),
-                                              onPressed: () {
-                                                // Guardar lógica
-                                              },
-                                              child: const Text('Publicar'),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            OutlinedButton(
-                                              onPressed: () {},
-                                              child: const Text(
-                                                'Guardar borrador',
+                                              const SizedBox(width: 16),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      CostealoColors.primary,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                onPressed: _isPublishing
+                                                    ? null
+                                                    : _publishSheet,
+                                                child: _isPublishing
+                                                    ? const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      )
+                                                    : const Text('Publicar'),
                                               ),
-                                            ),
-                                          ],
-                                        ),
+                                              const SizedBox(width: 16),
+                                              OutlinedButton(
+                                                onPressed: () {},
+                                                child: const Text(
+                                                  'Guardar borrador',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -438,13 +739,15 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                           _currency == 'Bs',
                                           _currency == 'USD',
                                         ],
-                                        onPressed: (index) {
-                                          setState(() {
-                                            _currency = index == 0
-                                                ? 'Bs'
-                                                : 'USD';
-                                          });
-                                        },
+                                        onPressed: widget.isReadOnly
+                                            ? null
+                                            : (index) {
+                                                setState(() {
+                                                  _currency = index == 0
+                                                      ? 'Bs'
+                                                      : 'USD';
+                                                });
+                                              },
                                         borderRadius: BorderRadius.circular(20),
                                         children: const [
                                           Padding(
@@ -499,45 +802,64 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 3,
                   child: TextField(
                     controller: _ingredientNames[i],
+                    readOnly: widget.isReadOnly,
                     decoration: InputDecoration(
                       hintText: 'Ingrediente ${i + 1}',
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: () {
-                          _showProductSelectionDialog(
-                            i,
-                            _ingredientNames,
-                            _ingredientQuantities,
-                          );
-                        },
-                      ),
+                      suffixIcon: widget.isReadOnly
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.search),
+                              onPressed: () {
+                                _showProductSelectionDialog(
+                                  i,
+                                  _ingredientNames,
+                                  _ingredientQuantities,
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Cantidad
+                // Cantidad (Física)
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: TextField(
-                    controller: _ingredientQuantities[i],
+                    controller: _ingredientAmounts[i],
+                    readOnly: widget.isReadOnly,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: _decimalFormatters,
-                    decoration: const InputDecoration(hintText: 'xx,xx'),
+                    decoration: const InputDecoration(hintText: 'Cant.'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Costo (Monetario)
+                Expanded(
+                  flex: 1,
+                  child: TextField(
+                    controller: _ingredientQuantities[i],
+                    readOnly: widget.isReadOnly,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: _decimalFormatters,
+                    decoration: const InputDecoration(hintText: 'Costo'),
                   ),
                 ),
               ],
             ),
           ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: _addIngredientRow,
-            icon: const Icon(Icons.add),
-            label: Text('Agregar ingrediente', style: textTheme.bodyMedium),
+        if (!widget.isReadOnly)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _addIngredientRow,
+              icon: const Icon(Icons.add),
+              label: Text('Agregar ingrediente', style: textTheme.bodyMedium),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -556,40 +878,65 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 3,
                   child: TextField(
                     controller: _extraNames[i],
+                    readOnly: widget.isReadOnly,
                     decoration: InputDecoration(
                       hintText: 'Costo ${i + 1}',
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: () {
-                          // luego conectamos con base de datos si aplica
-                        },
-                      ),
+                      suffixIcon: widget.isReadOnly
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.search),
+                              onPressed: () {
+                                _showProductSelectionDialog(
+                                  i,
+                                  _extraNames,
+                                  _extraQuantities,
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  flex: 2,
+                  flex: 1,
                   child: TextField(
-                    controller: _extraQuantities[i],
+                    controller: _extraAmounts[i],
+                    readOnly: widget.isReadOnly,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: _decimalFormatters,
-                    decoration: const InputDecoration(hintText: 'xx,xx'),
+                    decoration: const InputDecoration(hintText: 'Cant.'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: TextField(
+                    controller: _extraQuantities[i],
+                    readOnly: widget.isReadOnly,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: _decimalFormatters,
+                    decoration: const InputDecoration(hintText: 'Costo'),
                   ),
                 ),
               ],
             ),
           ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: _addExtraCostRow,
-            icon: const Icon(Icons.add),
-            label: Text('Agregar costo adicional', style: textTheme.bodyMedium),
+        if (!widget.isReadOnly)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _addExtraCostRow,
+              icon: const Icon(Icons.add),
+              label: Text(
+                'Agregar costo adicional',
+                style: textTheme.bodyMedium,
+              ),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -619,6 +966,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   Widget _buildEditableDecimalField({
     required String label,
     required TextEditingController controller,
+    bool readOnly = false,
   }) {
     return Row(
       children: [
@@ -634,6 +982,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
           flex: 3,
           child: TextField(
             controller: controller,
+            readOnly: widget.isReadOnly || readOnly,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: _decimalFormatters,
           ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
+import 'package:costealoo/services/auth_service.dart';
+import 'package:costealoo/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,7 +15,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _authService = AuthService();
   bool _isLoading = false;
+  String _organization = 'Empresa';
 
   @override
   void dispose() {
@@ -27,14 +31,44 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: aquí luego llamamos a AuthService.login(...)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Call AuthService to authenticate the user
+      await _authService.login(
+        correo: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+        organizacion: _organization,
+      );
 
-    setState(() => _isLoading = false);
-
-    // Por ahora, si pasa validación, lo mandamos al Home.
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      // Login successful, navigate to home
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } on ApiException catch (e) {
+      // Handle API errors (e.g., invalid credentials, server errors)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle unexpected errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error inesperado: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -98,6 +132,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    Text('Organización', style: textTheme.bodyMedium),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: _organization,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Empresa',
+                          child: Text('Empresa'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Independiente',
+                          child: Text('Independiente'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _organization = value);
+                        }
+                      },
+                    ),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -107,7 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Iniciar sesión'),
                       ),

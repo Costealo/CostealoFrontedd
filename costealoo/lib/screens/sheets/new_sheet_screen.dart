@@ -20,16 +20,20 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   final List<TextEditingController> _extraQuantities = [];
 
   // Totales y datos generales (por ahora solo UI)
-  final TextEditingController _totalController =
-      TextEditingController(text: '0,00');
-  final TextEditingController _pesoTotalController =
-      TextEditingController(text: '0,00');
-  final TextEditingController _pesoUnitarioController =
-      TextEditingController(text: '0,00');
+  final TextEditingController _totalController = TextEditingController(
+    text: '0,00',
+  );
+  final TextEditingController _pesoTotalController = TextEditingController(
+    text: '0,00',
+  );
+  final TextEditingController _pesoUnitarioController = TextEditingController(
+    text: '0,00',
+  );
   final TextEditingController _cantidadRacionController =
       TextEditingController();
-  final TextEditingController _totalFinalController =
-      TextEditingController(text: '0,00');
+  final TextEditingController _totalFinalController = TextEditingController(
+    text: '0,00',
+  );
 
   String _currency = 'Bs';
 
@@ -78,8 +82,8 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
 
   // Sólo formato decimal 2 decimales
   List<TextInputFormatter> get _decimalFormatters => [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\,?\d{0,2}')),
-      ];
+    FilteringTextInputFormatter.allow(RegExp(r'^\d*\,?\d{0,2}')),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -124,44 +128,40 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                       children: [
                                         Text(
                                           'Lista de ingredientes:',
-                                          style: textTheme.bodyMedium!
-                                              .copyWith(
-                                                  fontWeight: FontWeight.w600),
+                                          style: textTheme.bodyMedium!.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const SizedBox(height: 8),
                                         _buildIngredientList(context),
                                         const SizedBox(height: 24),
 
-                                        _buildReadOnlyField(
+                                        _buildEditableDecimalField(
                                           label: 'Total',
                                           controller: _totalController,
                                         ),
                                         const SizedBox(height: 14),
-
-                                        _buildReadOnlyField(
+                                        _buildEditableDecimalField(
                                           label: 'Peso total',
                                           controller: _pesoTotalController,
                                         ),
                                         const SizedBox(height: 14),
-
-                                        _buildReadOnlyField(
+                                        _buildEditableDecimalField(
                                           label: 'Peso unitario',
                                           controller: _pesoUnitarioController,
                                         ),
                                         const SizedBox(height: 14),
-
-                                        _buildEditableIntField(
+                                        _buildEditableDecimalField(
                                           label: 'Cantidad de ración',
-                                          controller:
-                                              _cantidadRacionController,
+                                          controller: _cantidadRacionController,
                                         ),
                                         const SizedBox(height: 28),
 
                                         Text(
                                           'Costos adicionales:',
-                                          style: textTheme.bodyMedium!
-                                              .copyWith(
-                                                  fontWeight: FontWeight.w600),
+                                          style: textTheme.bodyMedium!.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const SizedBox(height: 8),
                                         _buildExtraCostList(context),
@@ -188,39 +188,41 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                     children: [
                                       Text(
                                         'Cantidad',
-                                        style: textTheme.bodyMedium!
-                                            .copyWith(
-                                                fontWeight: FontWeight.w600),
+                                        style: textTheme.bodyMedium!.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                         textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(height: 8),
                                       Expanded(
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(18),
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
                                             color: CostealoColors.cardSoft,
                                           ),
                                           alignment: Alignment.topCenter,
                                           padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
+                                            vertical: 12,
+                                          ),
                                           child: Text(
                                             'Los campos de cantidad\n'
                                             'admiten 2 decimales.',
                                             textAlign: TextAlign.center,
                                             style: textTheme.bodySmall!
                                                 .copyWith(
-                                              color: Colors.grey[700],
-                                            ),
+                                                  color: Colors.grey[700],
+                                                ),
                                           ),
                                         ),
                                       ),
                                       const SizedBox(height: 24),
                                       Text(
                                         'Moneda:',
-                                        style: textTheme.bodyMedium!
-                                            .copyWith(
-                                                fontWeight: FontWeight.w600),
+                                        style: textTheme.bodyMedium!.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       ToggleButtons(
@@ -230,21 +232,25 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                         ],
                                         onPressed: (index) {
                                           setState(() {
-                                            _currency =
-                                                index == 0 ? 'Bs' : 'USD';
+                                            _currency = index == 0
+                                                ? 'Bs'
+                                                : 'USD';
                                           });
                                         },
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                         children: const [
                                           Padding(
                                             padding: EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 8),
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
                                             child: Text('Bs'),
                                           ),
                                           Padding(
                                             padding: EdgeInsets.symmetric(
-                                                horizontal: 16, vertical: 8),
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
                                             child: Text('\$us'),
                                           ),
                                         ],
@@ -302,12 +308,11 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 2,
                   child: TextField(
                     controller: _ingredientQuantities[i],
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: _decimalFormatters,
-                    decoration: const InputDecoration(
-                      hintText: 'xx,xx',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
+                    inputFormatters: _decimalFormatters,
+                    decoration: const InputDecoration(hintText: 'xx,xx'),
                   ),
                 ),
               ],
@@ -318,10 +323,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
           child: TextButton.icon(
             onPressed: _addIngredientRow,
             icon: const Icon(Icons.add),
-            label: Text(
-              'Agregar ingrediente',
-              style: textTheme.bodyMedium,
-            ),
+            label: Text('Agregar ingrediente', style: textTheme.bodyMedium),
           ),
         ),
       ],
@@ -358,12 +360,11 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 2,
                   child: TextField(
                     controller: _extraQuantities[i],
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: _decimalFormatters,
-                    decoration: const InputDecoration(
-                      hintText: 'xx,xx',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
+                    inputFormatters: _decimalFormatters,
+                    decoration: const InputDecoration(hintText: 'xx,xx'),
                   ),
                 ),
               ],
@@ -374,10 +375,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
           child: TextButton.icon(
             onPressed: _addExtraCostRow,
             icon: const Icon(Icons.add),
-            label: Text(
-              'Agregar costo adicional',
-              style: textTheme.bodyMedium,
-            ),
+            label: Text('Agregar costo adicional', style: textTheme.bodyMedium),
           ),
         ),
       ],
@@ -400,16 +398,13 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
         const SizedBox(width: 8),
         Expanded(
           flex: 3,
-          child: TextField(
-            controller: controller,
-            readOnly: true,
-          ),
+          child: TextField(controller: controller, readOnly: true),
         ),
       ],
     );
   }
 
-  Widget _buildEditableIntField({
+  Widget _buildEditableDecimalField({
     required String label,
     required TextEditingController controller,
   }) {
@@ -427,7 +422,8 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
           flex: 3,
           child: TextField(
             controller: controller,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: _decimalFormatters,
           ),
         ),
       ],

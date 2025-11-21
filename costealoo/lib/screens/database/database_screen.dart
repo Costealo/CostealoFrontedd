@@ -1,45 +1,128 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
+import 'package:costealoo/services/database_service.dart';
+import 'package:costealoo/services/api_client.dart';
 
 class DatabaseScreen extends StatefulWidget {
-  const DatabaseScreen({super.key});
+  final String initialName;
+
+  const DatabaseScreen({super.key, this.initialName = 'Nueva Base de Datos'});
 
   @override
   State<DatabaseScreen> createState() => _DatabaseScreenState();
 }
 
 class _DatabaseScreenState extends State<DatabaseScreen> {
-  // Datos mock (luego se remplaza con API)
-  List<Map<String, dynamic>> productDatabase = [
-    {
-      "id": 1,
-      "name": "Harina",
-      "price": 15.20,
-      "unit": "kg",
-      "currency": "Bs",
-      "extra": "-"
-    },
-    {
-      "id": 2,
-      "name": "Huevos",
-      "price": 0.90,
-      "unit": "unidad",
-      "currency": "Bs",
-      "extra": "-"
-    },
-    {
-      "id": 3,
-      "name": "Aceite",
-      "price": 12.50,
-      "unit": "L",
-      "currency": "Bs",
-      "extra": "-"
-    },
-  ];
+  // Lista de productos editables
+  List<Map<String, TextEditingController>> productRows = [];
+  bool _isLoading = false;
 
-  Future<void> refreshDatabase() async {
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    // Iniciar con 10 filas vacías
+    for (int i = 0; i < 10; i++) {
+      _addNewRow();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Limpiar todos los controladores
+    for (var row in productRows) {
+      row['id']?.dispose();
+      row['name']?.dispose();
+      row['price']?.dispose();
+      row['unit']?.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addNewRow() {
+    setState(() {
+      productRows.add({
+        'id': TextEditingController(),
+        'name': TextEditingController(),
+        'price': TextEditingController(),
+        'unit': TextEditingController(),
+      });
+    });
+  }
+
+  void _addMultipleRows() {
+    setState(() {
+      for (int i = 0; i < 5; i++) {
+        _addNewRow();
+      }
+    });
+  }
+
+  Future<void> _publish() async {
+    // Recopilar datos de los productos
+    final List<Map<String, dynamic>> products = [];
+
+    for (var row in productRows) {
+      // Solo agregar filas que tengan al menos el nombre
+      if (row['name']!.text.isNotEmpty) {
+        products.add({
+          'id': row['id']!.text,
+          'name': row['name']!.text,
+          'price': row['price']!.text,
+          'unit': row['unit']!.text,
+        });
+      }
+    }
+
+    if (products.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Agrega al menos un producto'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Guardar en API
+      await DatabaseService().createDatabase(
+        name: widget.initialName,
+        products: products,
+      );
+
+      if (!mounted) return;
+
+      // Mostrar mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Base de datos publicada exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Regresar indicando éxito
+      Navigator.pop(context, {'published': true});
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -54,21 +137,29 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
           Expanded(
             child: Container(
               color: CostealoColors.primaryLight,
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Base de datos",
-                    style: textTheme.headlineMedium,
+                  // Título y info
+                  Row(
+                    children: [
+                      Text(widget.initialName, style: textTheme.headlineSmall),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: () {
+                          // TODO: Configuración
+                        },
+                      ),
+                    ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // TABLA
+                  // Tabla editable
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -80,51 +171,130 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                           ),
                         ],
                       ),
-                      child: Scrollbar(
-                        thumbVisibility: true,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: DataTable(
-                            headingRowColor: MaterialStateProperty.all(
-                              CostealoColors.cardSoft,
+                      child: Column(
+                        children: [
+                          // Header de la tabla
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                            columns: const [
-                              DataColumn(label: Text("ID")),
-                              DataColumn(label: Text("Nombre producto")),
-                              DataColumn(label: Text("Precio")),
-                              DataColumn(label: Text("Unidad de medida")),
-                              DataColumn(label: Text("Moneda")),
-                              DataColumn(label: Text("Otros campos")),
-                            ],
-                            rows: productDatabase.map((item) {
-                              return DataRow(cells: [
-                                DataCell(Text(item["id"].toString())),
-                                DataCell(Text(item["name"])),
-                                DataCell(Text(
-                                    item["price"].toStringAsFixed(2))),
-                                DataCell(Text(item["unit"])),
-                                DataCell(Text(item["currency"])),
-                                DataCell(Text(item["extra"])),
-                              ]);
-                            }).toList(),
+                            decoration: BoxDecoration(
+                              color: CostealoColors.cardSoft,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                _buildHeaderCell('ID', flex: 1),
+                                _buildHeaderCell('Nombre producto', flex: 3),
+                                _buildHeaderCell('Precio', flex: 2),
+                                _buildHeaderCell('Unidad de medida', flex: 2),
+                                const SizedBox(width: 60), // Espacio para botón
+                              ],
+                            ),
                           ),
-                        ),
+
+                          // Filas editables con scroll
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Scrollbar(
+                                  thumbVisibility: true,
+                                  child: ListView.builder(
+                                    itemCount: productRows.length,
+                                    itemBuilder: (context, index) {
+                                      return _buildEditableRow(index);
+                                    },
+                                  ),
+                                ),
+
+                                // Botón flotante "Aumentar filas"
+                                Positioned(
+                                  right: 8,
+                                  bottom: 16,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      FloatingActionButton.small(
+                                        backgroundColor: CostealoColors.primary,
+                                        onPressed: _addNewRow,
+                                        tooltip: 'Añadir 1 fila',
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor:
+                                              CostealoColors.primaryDark,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            side: BorderSide(
+                                              color: CostealoColors.primary,
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                        onPressed: _addMultipleRows,
+                                        child: const Text(
+                                          'Aumentar\nfilas',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 11),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Botón para aumentar columnas (placeholder)
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.add),
+                              label: const Text('Aumentar campos/columnas'),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Función próximamente'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // BOTONES
+                  // Botones inferiores
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // REGRESAR
+                      // Botón Regresar
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: CostealoColors.cardSoft,
+                          foregroundColor: Colors.black87,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 28, vertical: 14),
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -132,35 +302,127 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                         onPressed: () {
                           Navigator.pop(context);
                         },
-                        child: const Text(
-                          "Regresar",
-                          style: TextStyle(color: Colors.black87),
-                        ),
+                        child: const Text('Regresar'),
                       ),
 
-                      // ACTUALIZAR
+                      // Botón Publicar
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: CostealoColors.primary,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 28, vertical: 14),
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: refreshDatabase,
-                        child: const Text(
-                          "Actualizar",
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        onPressed: _isLoading ? null : _publish,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Publicar'),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-          )
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCell(String text, {int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+      ),
+    );
+  }
+
+  Widget _buildEditableRow(int index) {
+    final row = productRows[index];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: Row(
+        children: [
+          _buildEditableCell(row['id']!, flex: 1),
+          _buildEditableCell(row['name']!, flex: 3),
+          _buildEditableCell(row['price']!, flex: 2, isNumeric: true),
+          _buildEditableCell(row['unit']!, flex: 2),
+
+          // Botón para eliminar fila
+          SizedBox(
+            width: 60,
+            child: IconButton(
+              icon: Icon(Icons.delete_outline, color: Colors.grey[400]),
+              iconSize: 18,
+              onPressed: () {
+                setState(() {
+                  row['id']?.dispose();
+                  row['name']?.dispose();
+                  row['price']?.dispose();
+                  row['unit']?.dispose();
+                  productRows.removeAt(index);
+                });
+              },
+              tooltip: 'Eliminar fila',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditableCell(
+    TextEditingController controller, {
+    int flex = 1,
+    bool isNumeric = false,
+  }) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: TextField(
+          controller: controller,
+          keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 8,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: CostealoColors.primary),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+        ),
       ),
     );
   }

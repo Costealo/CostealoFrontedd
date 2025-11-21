@@ -47,68 +47,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _goToStep2OrRegister() {
     if (!_formKeyStep1.currentState!.validate()) return;
 
-    // Si es Empresa, registrar directamente
-    if (_organization == 'Empresa') {
-      _registerCompany();
-    } else {
-      // Si es Independiente, ir al paso 2 (suscripción)
-      setState(() => _step = 1);
-    }
+    // Ahora ambos tipos de organización van al paso 2 (suscripción)
+    setState(() => _step = 1);
   }
 
-  Future<void> _registerCompany() async {
-    setState(() => _isLoading = true);
-
-    try {
-      // 1. Registrar empresa
-      await _authService.register(
-        nombre: _nameCtrl.text.trim(),
-        correo: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text,
-        organizacion: _organization,
-      );
-
-      // 2. Auto-login inmediato
-      await _authService.login(
-        correo: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text,
-        organizacion: _organization,
-      );
-
-      // 3. Actualizar nombre localmente (ya que el login no lo devuelve)
-      _authService.updateCurrentUser(nombre: _nameCtrl.text.trim());
-
-      // 4. Mostrar éxito y navegar
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showSuccessDialog();
-      }
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error inesperado: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
+  // _registerCompany eliminado ya que ahora todos pasan por _finishRegistration
 
   void _showSuccessDialog() {
     showDialog(
@@ -178,6 +121,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         paymentType: _paymentType,
         last4Digits: _last4Ctrl.text,
       );
+
+      // Auto-login inmediato
+      await _authService.login(
+        correo: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+        organizacion: _organization,
+      );
+
+      // Actualizar nombre localmente
+      _authService.updateCurrentUser(nombre: _nameCtrl.text.trim());
 
       // Registration successful, show success dialog
       if (mounted) {

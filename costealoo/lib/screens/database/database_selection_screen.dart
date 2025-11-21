@@ -7,6 +7,7 @@ import 'package:costealoo/services/auth_service.dart';
 import 'package:costealoo/screens/database/database_screen.dart';
 import 'package:costealoo/services/database_service.dart';
 import 'package:costealoo/services/api_client.dart';
+import 'package:costealoo/screens/sheets/new_sheet_screen.dart';
 
 class DatabaseSelectionScreen extends StatefulWidget {
   const DatabaseSelectionScreen({super.key});
@@ -91,14 +92,32 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
     }
   }
 
-  void _openDatabase(Map<String, dynamic> database) {
+  Future<void> _openDatabase(Map<String, dynamic> database) async {
     // Navegar a la pantalla de visualización
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DatabaseViewScreen(
+          databaseId: database['id']?.toString() ?? '',
           databaseName: database['name'] as String,
-          products: (database['products'] as List).cast<Map<String, String>>(),
+          products: (database['products'] as List).cast<Map<String, dynamic>>(),
+        ),
+      ),
+    );
+
+    // Si se renombró, actualizar lista
+    if (result != null && result is Map && result['newName'] != null) {
+      _loadDatabases();
+    }
+  }
+
+  void _createSheetFromDatabase(Map<String, dynamic> database) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewSheetScreen(
+          preLoadedProducts: (database['products'] as List?)
+              ?.cast<Map<String, dynamic>>(),
         ),
       ),
     );
@@ -189,7 +208,9 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                                                   onTap: () => _openDatabase({
                                                     'name': name,
                                                     'products':
-                                                        <Map<String, String>>[],
+                                                        <
+                                                          Map<String, dynamic>
+                                                        >[],
                                                   }),
                                                 ),
                                               )
@@ -220,6 +241,10 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                                                 (db) => SectionCard(
                                                   title: db['name'] as String,
                                                   onTap: () =>
+                                                      _createSheetFromDatabase(
+                                                        db,
+                                                      ),
+                                                  onEdit: () =>
                                                       _openDatabase(db),
                                                 ),
                                               )
@@ -264,25 +289,23 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
 
                         const SizedBox(width: 16),
 
-                        // Botón Rellenar (Manual) - Solo para Empresas
-                        if (AuthService().currentUser?.organizacion ==
-                            'Empresa')
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: CostealoColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                        // Botón Rellenar (Manual) - Disponible para todos
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CostealoColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
                             ),
-                            onPressed: _navigateToManualEntry,
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Rellenar'),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          onPressed: _navigateToManualEntry,
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Rellenar'),
+                        ),
                       ],
                     ),
                   ],

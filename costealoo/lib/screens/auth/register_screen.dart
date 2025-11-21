@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
+import 'package:costealoo/services/auth_service.dart';
+import 'package:costealoo/services/api_client.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _expiryCtrl = TextEditingController();
   final _cvvCtrl = TextEditingController();
 
+  final _authService = AuthService();
   bool _isLoading = false;
 
   @override
@@ -42,10 +44,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _goToStep2() {
-    if (_formKeyStep1.currentState!.validate()) {
-      setState(() => _step = 1);
-    }
+  void _goToStep2OrRegister() {
+    if (!_formKeyStep1.currentState!.validate()) return;
+
+    // Ahora ambos tipos de organización van al paso 2 (suscripción)
+    setState(() => _step = 1);
+  }
+
+  // _registerCompany eliminado ya que ahora todos pasan por _finishRegistration
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Column(
+            children: [
+              Icon(Icons.check_circle, color: CostealoColors.primary, size: 60),
+              const SizedBox(height: 16),
+              Text(
+                '¡Cuenta creada!',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          content: Text(
+            'Tu cuenta de empresa ha sido creada exitosamente. Vamos a comenzar.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CostealoColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () {
+                  // Cerrar diálogo y navegar al Home (ya estamos logueados)
+                  Navigator.of(context).pop(); // Cerrar diálogo
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home', // Asumiendo que esta es la ruta home
+                    (route) => false,
+                  );
+                },
+                child: const Text('Continuar'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _finishRegistration() async {
@@ -53,13 +110,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    // TODO: acá luego llamamos a AuthService.register(...)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Call AuthService to register the user (Independiente con suscripción)
+      await _authService.register(
+        nombre: _nameCtrl.text.trim(),
+        correo: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+        organizacion: _organization,
+        subscription: _subscription,
+        paymentType: _paymentType,
+        last4Digits: _last4Ctrl.text,
+      );
 
-    setState(() => _isLoading = false);
+      // Auto-login inmediato
+      await _authService.login(
+        correo: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+        organizacion: _organization,
+      );
 
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      // Actualizar nombre localmente
+      _authService.updateCurrentUser(nombre: _nameCtrl.text.trim());
+
+      // Registration successful, show success dialog
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showSuccessDialog();
+      }
+    } on ApiException catch (e) {
+      // Handle API errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle unexpected errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error inesperado: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -125,10 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Crear cuenta',
-                    style: textTheme.headlineMedium,
-                  ),
+                  Text('Crear cuenta', style: textTheme.headlineMedium),
                   const SizedBox(height: 8),
                   Text(
                     _step == 0
@@ -139,7 +239,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (_step == 0) _buildStep1(textTheme) else _buildStep2(textTheme),
+                  if (_step == 0)
+                    _buildStep1(textTheme)
+                  else
+                    _buildStep2(textTheme),
                 ],
               ),
             ),
@@ -210,7 +313,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             value: _organization,
             items: const [
               DropdownMenuItem(value: 'Empresa', child: Text('Empresa')),
-              DropdownMenuItem(value: 'Independiente', child: Text('Independiente')),
+              DropdownMenuItem(
+                value: 'Independiente',
+                child: Text('Independiente'),
+              ),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -227,8 +333,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 backgroundColor: CostealoColors.primary,
                 foregroundColor: Colors.white,
               ),
-              onPressed: _goToStep2,
-              child: const Text('Siguiente'),
+              onPressed: _isLoading ? null : _goToStep2OrRegister,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Siguiente'),
             ),
           ),
         ],
@@ -261,11 +376,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           DropdownButtonFormField<String>(
             value: _subscription,
             items: const [
-              DropdownMenuItem(value: 'Básico', child: Text('Básico · Bs 29,99/mes')),
               DropdownMenuItem(
-                  value: 'Estándar', child: Text('Estándar · Bs 49,99/mes')),
+                value: 'Básico',
+                child: Text('Básico · Bs 29,99/mes'),
+              ),
               DropdownMenuItem(
-                  value: 'Premium', child: Text('Premium · Bs 89,99/mes')),
+                value: 'Estándar',
+                child: Text('Estándar · Bs 49,99/mes'),
+              ),
+              DropdownMenuItem(
+                value: 'Premium',
+                child: Text('Premium · Bs 89,99/mes'),
+              ),
             ],
             onChanged: (v) {
               if (v != null) setState(() => _subscription = v);
@@ -279,9 +401,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             value: _paymentType,
             items: const [
               DropdownMenuItem(
-                  value: 'Tarjeta de débito', child: Text('Tarjeta de débito')),
+                value: 'Tarjeta de débito',
+                child: Text('Tarjeta de débito'),
+              ),
               DropdownMenuItem(
-                  value: 'Tarjeta de crédito', child: Text('Tarjeta de crédito')),
+                value: 'Tarjeta de crédito',
+                child: Text('Tarjeta de crédito'),
+              ),
             ],
             onChanged: (v) {
               if (v != null) setState(() => _paymentType = v);
@@ -311,8 +437,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           TextFormField(
             controller: _expiryCtrl,
             keyboardType: TextInputType.datetime,
-            validator: (v) =>
-                (v == null || v.isEmpty) ? 'Ingrese la fecha de vencimiento' : null,
+            validator: (v) => (v == null || v.isEmpty)
+                ? 'Ingrese la fecha de vencimiento'
+                : null,
           ),
           const SizedBox(height: 16),
 

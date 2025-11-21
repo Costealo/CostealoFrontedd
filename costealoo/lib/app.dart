@@ -11,6 +11,7 @@ import 'screens/profile/profile_screen.dart';
 import 'screens/sheets/new_sheet_screen.dart';
 import 'screens/sheets/summary_screen.dart';
 import 'screens/database/database_screen.dart';
+import 'screens/database/database_selection_screen.dart';
 
 class CostealoApp extends StatelessWidget {
   const CostealoApp({super.key});
@@ -23,15 +24,16 @@ class CostealoApp extends StatelessWidget {
       theme: CostealoTheme.light,
       initialRoute: AppRoutes.welcome,
       routes: {
-        AppRoutes.welcome:  (_) => const WelcomeScreen(),
-        AppRoutes.login:    (_) => const LoginScreen(),
+        AppRoutes.welcome: (_) => const WelcomeScreen(),
+        AppRoutes.login: (_) => const LoginScreen(),
         AppRoutes.register: (_) => const RegisterScreen(),
-        AppRoutes.home:     (_) => const HomeShell(),
+        AppRoutes.home: (_) => const HomeShell(),
 
-        AppRoutes.profile:  (_) => const ProfileScreen(),
+        AppRoutes.profile: (_) => const ProfileScreen(),
         AppRoutes.newSheet: (_) => const NewSheetScreen(),
-        AppRoutes.summary:  (_) => const SummaryScreen(),
-        AppRoutes.database: (_) => const DatabaseScreen(),
+        AppRoutes.summary: (_) => const SummaryScreen(),
+        AppRoutes.database: (_) => const DatabaseSelectionScreen(),
+        AppRoutes.databaseManual: (_) => const DatabaseScreen(),
       },
     );
   }

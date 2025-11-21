@@ -18,6 +18,12 @@ class SidebarMenu extends StatelessWidget {
             children: [
               const SizedBox(height: 24),
               _SidebarIconButton(
+                icon: Icons.home_outlined,
+                tooltip: 'Inicio',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.home),
+              ),
+              const SizedBox(height: 24),
+              _SidebarIconButton(
                 icon: Icons.person_outline,
                 tooltip: 'Usuario',
                 onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
@@ -84,11 +90,7 @@ class _SidebarIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 26,
-          ),
+          child: Icon(icon, color: Colors.white, size: 26),
         ),
       ),
     );

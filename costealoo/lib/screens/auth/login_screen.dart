@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
+import 'package:costealoo/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,19 +23,52 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  final _authService = AuthService();
+
   Future<void> _onLoginPressed() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    // TODO: aquí luego llamamos a AuthService.login(...)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _authService.login(
+        _emailCtrl.text.trim(),
+        _passwordCtrl.text,
+      );
 
-    setState(() => _isLoading = false);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'Ocurrió un error al iniciar sesión';
+        
+        // Verificar si es el error de usuario no registrado
+        if (e.toString().contains('Usuario no registrado')) {
+          errorMessage = 'Usuario no registrado';
+        }
 
-    // Por ahora, si pasa validación, lo mandamos al Home.
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text('Error'),
+            content: Text(errorMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Aceptar'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

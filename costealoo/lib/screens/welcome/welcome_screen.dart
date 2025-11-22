@@ -1,100 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
-      backgroundColor: CostealoColors.primary, // verde sólido
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _CostealoLogo(),      // ← logo hecho en código
-                const SizedBox(height: 40),
-
-                Text(
-                  'Bienvenido/a a',
-                  style: textTheme.bodyMedium!.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 20,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                Text(
-                  'Costealo',
-                  style: textTheme.headlineLarge!.copyWith(
-                    color: Colors.white,
-                    fontSize: 56,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -1,
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                Text(
-                  'Organice la estructura de costos de su empresa de manera '
-                  'profesional y calcule precios de venta que aseguren su margen '
-                  'de beneficio. Costealo convierte sus datos en información '
-                  'precisa para optimizar la rentabilidad de cada producto.\n\n'
-                  'Olvídese de las hojas de cálculo complejas.',
-                  style: textTheme.bodyMedium!.copyWith(
-                    color: Colors.white.withOpacity(0.95),
-                    fontSize: 17,
-                    height: 1.45,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: CostealoColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, AppRoutes.login);
-                  },
-                  child: const Text(
-                    'Comenzar',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+      body: Stack(
+        children: [
+          // Fondo con la imagen limpia
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/welcome_bg.jpg',
+              fit: BoxFit.cover,
             ),
           ),
-        ),
+
+          // Contenido superpuesto
+          SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(flex: 4), // Empujar contenido hacia el centro/abajo
+
+                  // Logo
+                  const _CostealoLogo(),
+                  
+                  const SizedBox(height: 10),
+
+                  // Título COSTEALO
+                  Text(
+                    'COSTEALO',
+                    style: GoogleFonts.dmSerifDisplay(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w400, // Serif fonts usually look bold enough
+                      color: Colors.black,
+                      letterSpacing: 2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Slogan
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'Tu socio para una gestión\nde costos inteligente',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSerifDisplay(
+                        fontSize: 24,
+                        color: Colors.black,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(flex: 3),
+
+                  // Botón COMENZAR
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 40),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 18,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 5,
+                      ),
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.login);
+                      },
+                      child: Text(
+                        'COMENZAR',
+                        style: GoogleFonts.dmSerifDisplay(
+                          fontSize: 22,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────
-// LOGO HECHO SOLO CON CÓDIGO (C + CHECK)
+// LOGO (C + CHECK)
 // ─────────────────────────────────────────────
 
 class _CostealoLogo extends StatelessWidget {
@@ -102,56 +108,41 @@ class _CostealoLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // círculo con C + check
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withOpacity(0.9),
-              width: 2,
+    return SizedBox(
+      width: 100,
+      height: 100,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // La "C" negra
+          Text(
+            'C',
+            style: GoogleFonts.dmSerifDisplay(
+              fontSize: 100,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              height: 1,
             ),
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                'C',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
-                  fontSize: 42,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1,
+          // El check verde superpuesto
+          Positioned(
+            right: 10,
+            bottom: 15,
+            child: Icon(
+              Icons.check_rounded,
+              size: 50,
+              color: const Color(0xFF8ECF9B), // Color verde del diseño original (accent)
+              shadows: [
+                Shadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(1, 1),
                 ),
-              ),
-              Positioned(
-                right: 14,
-                bottom: 16,
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 26,
-                  color: Colors.white.withOpacity(0.95),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-
-        const SizedBox(width: 16),
-
-        Text(
-          'Costealo',
-          style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

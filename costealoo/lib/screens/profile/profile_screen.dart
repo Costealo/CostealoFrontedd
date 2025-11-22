@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
+import 'package:costealoo/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,8 +12,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // En el futuro estos valores vendrán del backend / auth.
-  final _nameCtrl = TextEditingController(text: 'Nombre de ejemplo');
-  final _emailCtrl = TextEditingController(text: 'usuario@costealo.com');
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController(text: '********');
   final _organizationCtrl = TextEditingController(text: 'Empresa');
 
@@ -24,6 +25,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _passwordVisible = false;
   bool _showUpgradeOptions = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData() {
+    final user = AuthService.currentUser;
+    if (user != null) {
+      _nameCtrl.text = user.name ?? 'Usuario';
+      _emailCtrl.text = user.email;
+    } else {
+        // Fallback si no hay usuario (ej. desarrollo)
+        _nameCtrl.text = 'Nombre de ejemplo';
+        _emailCtrl.text = 'usuario@costealo.com';
+    }
+  }
 
   @override
   void dispose() {

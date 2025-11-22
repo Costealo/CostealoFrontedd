@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
+import 'package:costealoo/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -48,18 +49,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  final _authService = AuthService();
+
   Future<void> _finishRegistration() async {
     if (!_formKeyStep2.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    // TODO: acá luego llamamos a AuthService.register(...)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _authService.register(
+        _nameCtrl.text.trim(),
+        _emailCtrl.text.trim(),
+        _passwordCtrl.text,
+      );
 
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al registrar: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

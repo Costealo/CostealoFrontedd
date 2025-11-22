@@ -306,7 +306,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: _decimalFormatters,
                     decoration: const InputDecoration(
-                      hintText: 'xx,xx',
+                      hintText: '0,00',
                     ),
                   ),
                 ),
@@ -362,7 +362,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: _decimalFormatters,
                     decoration: const InputDecoration(
-                      hintText: 'xx,xx',
+                      hintText: '0,00',
                     ),
                   ),
                 ),

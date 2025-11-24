@@ -156,11 +156,11 @@ class _HomeShellState extends State<HomeShell> {
                                                   builder: (context) =>
                                                       NewSheetScreen(
                                                         sheetData: sheet,
-                                                        isReadOnly: true,
+                                                        // Removed isReadOnly to allow editing
                                                       ),
                                                 ),
                                               );
-                                              // Recargar al volver por si hubo cambios (aunque es read-only por ahora)
+                                              // Reload sheets after returning
                                               _loadSheets();
                                             },
                                             child: SectionCard(

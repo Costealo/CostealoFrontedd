@@ -6,13 +6,8 @@ import 'package:costealoo/services/api_client.dart';
 
 class DatabaseScreen extends StatefulWidget {
   final String initialName;
-  final List<Map<String, dynamic>>? preLoadedProducts;
 
-  const DatabaseScreen({
-    super.key,
-    this.initialName = 'Nueva Base de Datos',
-    this.preLoadedProducts,
-  });
+  const DatabaseScreen({super.key, this.initialName = 'Nueva Base de Datos'});
 
   @override
   State<DatabaseScreen> createState() => _DatabaseScreenState();
@@ -26,28 +21,9 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   @override
   void initState() {
     super.initState();
-    // Si hay productos pre-cargados, cargarlos
-    if (widget.preLoadedProducts != null &&
-        widget.preLoadedProducts!.isNotEmpty) {
-      for (var product in widget.preLoadedProducts!) {
-        productRows.add({
-          'id': TextEditingController(text: product['id']?.toString() ?? ''),
-          'name': TextEditingController(
-            text: product['name']?.toString() ?? '',
-          ),
-          'price': TextEditingController(
-            text: product['price']?.toString() ?? '',
-          ),
-          'unit': TextEditingController(
-            text: product['unit']?.toString() ?? '',
-          ),
-        });
-      }
-    } else {
-      // Iniciar con 10 filas vacías
-      for (int i = 0; i < 10; i++) {
-        _addNewRow();
-      }
+    // Iniciar con 10 filas vacías
+    for (int i = 0; i < 10; i++) {
+      _addNewRow();
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:costealoo/screens/database/database_screen.dart';
 import 'package:costealoo/services/database_service.dart';
 import 'package:costealoo/services/api_client.dart';
 import 'package:costealoo/screens/sheets/new_sheet_screen.dart';
-import 'package:costealoo/utils/excel_import_helper.dart';
 
 class DatabaseSelectionScreen extends StatefulWidget {
   const DatabaseSelectionScreen({super.key});
@@ -122,53 +121,6 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _importFromExcel() async {
-    try {
-      final products = await ExcelImportHelper.importProductsFromExcel();
-
-      if (products == null) return;
-
-      final user = AuthService().currentUser;
-      final companyName = (user?.nombre != null && user!.nombre.isNotEmpty)
-          ? user.nombre
-          : 'Mi Empresa';
-
-      final dbResult = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DatabaseScreen(
-            initialName: companyName,
-            preLoadedProducts: products,
-          ),
-        ),
-      );
-
-      if (dbResult != null &&
-          dbResult is Map &&
-          dbResult['published'] == true) {
-        _loadDatabases();
-      }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${products.length} productos importados correctamente',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al importar archivo: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   @override
@@ -307,7 +259,7 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                     // Botones en la parte inferior
                     Row(
                       children: [
-                        // Botón Importar archivo
+                        // Botón Exportar de archivo
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -321,9 +273,18 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                               side: BorderSide(color: CostealoColors.primary),
                             ),
                           ),
-                          onPressed: _importFromExcel,
+                          onPressed: () {
+                            // TODO: Implementar importar desde archivo
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Importar desde archivo - Próximamente',
+                                ),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.upload_file),
-                          label: const Text('Importar archivo'),
+                          label: const Text('Exportar de archivo'),
                         ),
 
                         const SizedBox(width: 16),

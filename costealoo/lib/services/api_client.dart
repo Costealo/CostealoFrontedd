@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   // Azure API base URL
   static const String baseUrl =
-      'https://app-251124161156.azurewebsites.net/api';
+      'https://app-251124232224.azurewebsites.net/api';
 
   String? _token;
 
@@ -96,25 +96,24 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
+      print('GET Request: $url');
       final response = await http.get(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
       );
-
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      print('GET Response (${response.statusCode}): ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return responseData;
+        if (response.body.isEmpty) return {};
+        return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         throw ApiException(
-          message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
-              'Error desconocido',
+          message: 'Error ${response.statusCode}: ${response.body}',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
+      print('GET Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',
@@ -130,26 +129,26 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
+      print('PUT Request: $url');
+      print('PUT Body: $body');
       final response = await http.put(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
         body: jsonEncode(body),
       );
-
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      print('PUT Response (${response.statusCode}): ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return responseData;
+        if (response.body.isEmpty) return {};
+        return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         throw ApiException(
-          message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
-              'Error desconocido',
+          message: 'Error ${response.statusCode}: ${response.body}',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
+      print('PUT Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',
@@ -164,25 +163,24 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
+      print('DELETE Request: $url');
       final response = await http.delete(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
       );
-
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      print('DELETE Response (${response.statusCode}): ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return responseData;
+        if (response.body.isEmpty) return {};
+        return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         throw ApiException(
-          message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
-              'Error desconocido',
+          message: 'Error ${response.statusCode}: ${response.body}',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
+      print('DELETE Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',

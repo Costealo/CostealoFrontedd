@@ -124,17 +124,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         subscription: _subscription,
         paymentType: _paymentType,
         last4Digits: _last4Ctrl.text,
+        expiryDate: _expiryCtrl.text,
+        cvv: _cvvCtrl.text,
       );
 
-      // Auto-login inmediato
-      await _authService.login(
-        correo: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text,
-        organizacion: _organization,
-      );
-
-      // Actualizar nombre localmente
-      _authService.updateCurrentUser(nombre: _nameCtrl.text.trim());
+      // register() ya hace login y actualiza el perfil automáticamente
+      // No need to call login() again
 
       // Registration successful, show success dialog
       if (mounted) {

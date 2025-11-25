@@ -15,7 +15,7 @@ class DatabaseService {
         final List<dynamic> decoded = jsonDecode(stored);
         _mockDatabases = decoded.cast<Map<String, dynamic>>();
       } catch (e) {
-        print('Error loading databases: $e');
+        // print('Error loading databases: $e');
       }
     }
     _isLoaded = true;

@@ -64,7 +64,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           title: Column(
             children: [
-              Icon(Icons.check_circle, color: CostealoColors.primary, size: 60),
+              const Icon(
+                Icons.check_circle,
+                color: CostealoColors.primary,
+                size: 60,
+              ),
               const SizedBox(height: 16),
               Text(
                 '¡Cuenta creada!',
@@ -310,7 +314,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Text('Organización', style: textTheme.bodyMedium),
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
-            value: _organization,
+            initialValue: _organization,
             items: const [
               DropdownMenuItem(value: 'Empresa', child: Text('Empresa')),
               DropdownMenuItem(
@@ -364,7 +368,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(width: 8),
               InkWell(
                 onTap: _showSubscriptionInfo,
-                child: Icon(
+                child: const Icon(
                   Icons.info_outline,
                   size: 18,
                   color: CostealoColors.primaryDark,
@@ -374,7 +378,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
-            value: _subscription,
+            initialValue: _subscription,
             items: const [
               DropdownMenuItem(
                 value: 'Básico',
@@ -398,7 +402,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Text('Tipo de pago', style: textTheme.bodyMedium),
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
-            value: _paymentType,
+            initialValue: _paymentType,
             items: const [
               DropdownMenuItem(
                 value: 'Tarjeta de débito',

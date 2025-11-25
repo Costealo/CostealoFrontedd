@@ -191,7 +191,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                           BoxShadow(
                             blurRadius: 10,
                             offset: const Offset(0, 4),
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                           ),
                         ],
                       ),
@@ -203,9 +203,9 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                               horizontal: 16,
                               vertical: 12,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: CostealoColors.cardSoft,
-                              borderRadius: const BorderRadius.only(
+                              borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(16),
                                 topRight: Radius.circular(16),
                               ),
@@ -261,7 +261,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                                             borderRadius: BorderRadius.circular(
                                               8,
                                             ),
-                                            side: BorderSide(
+                                            side: const BorderSide(
                                               color: CostealoColors.primary,
                                             ),
                                           ),
@@ -441,7 +441,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6),
-              borderSide: BorderSide(color: CostealoColors.primary),
+              borderSide: const BorderSide(color: CostealoColors.primary),
             ),
             filled: true,
             fillColor: Colors.grey[50],

@@ -54,7 +54,7 @@ class ExcelImportHelper {
         }
 
         products.add({
-          'id': row.length > 0 && row[0]?.value != null
+          'id': row.isNotEmpty && row[0]?.value != null
               ? row[0]!.value.toString()
               : '',
           'name': row.length > 1 && row[1]?.value != null

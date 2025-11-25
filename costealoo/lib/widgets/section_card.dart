@@ -23,7 +23,7 @@ class SectionCard extends StatelessWidget {
             BoxShadow(
               blurRadius: 10,
               offset: const Offset(0, 4),
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
             ),
           ],
         ),

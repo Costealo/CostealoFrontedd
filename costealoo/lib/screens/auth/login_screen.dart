@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text('Organización', style: textTheme.bodyMedium),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: _organization,
+                      initialValue: _organization,
                       items: const [
                         DropdownMenuItem(
                           value: 'Empresa',

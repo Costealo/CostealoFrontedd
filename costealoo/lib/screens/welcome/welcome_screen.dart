@@ -20,13 +20,13 @@ class WelcomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const _CostealoLogo(),      // ← logo hecho en código
+                const _CostealoLogo(), // ← logo hecho en código
                 const SizedBox(height: 40),
 
                 Text(
                   'Bienvenido/a a',
                   style: textTheme.bodyMedium!.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 20,
                     letterSpacing: 0.5,
                   ),
@@ -52,7 +52,7 @@ class WelcomeScreen extends StatelessWidget {
                   'precisa para optimizar la rentabilidad de cada producto.\n\n'
                   'Olvídese de las hojas de cálculo complejas.',
                   style: textTheme.bodyMedium!.copyWith(
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                     fontSize: 17,
                     height: 1.45,
                     letterSpacing: 0.2,
@@ -78,10 +78,7 @@ class WelcomeScreen extends StatelessWidget {
                   },
                   child: const Text(
                     'Comenzar',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -109,10 +106,10 @@ class _CostealoLogo extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               width: 2,
             ),
           ),
@@ -122,7 +119,7 @@ class _CostealoLogo extends StatelessWidget {
               Text(
                 'C',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   fontSize: 42,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -1,
@@ -134,7 +131,7 @@ class _CostealoLogo extends StatelessWidget {
                 child: Icon(
                   Icons.check_rounded,
                   size: 26,
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                 ),
               ),
             ],
@@ -146,10 +143,10 @@ class _CostealoLogo extends StatelessWidget {
         Text(
           'Costealo',
           style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
         ),
       ],
     );

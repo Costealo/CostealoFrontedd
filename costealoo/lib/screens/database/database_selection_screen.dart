@@ -50,7 +50,7 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Error al cargar bases de datos'),
             backgroundColor: Colors.red,
           ),
@@ -129,6 +129,7 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
       final products = await ExcelImportHelper.importProductsFromExcel();
 
       if (products == null) return;
+      if (!mounted) return;
 
       final user = AuthService().currentUser;
       final companyName = (user?.nombre != null && user!.nombre.isNotEmpty)
@@ -318,7 +319,9 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: CostealoColors.primary),
+                              side: const BorderSide(
+                                color: CostealoColors.primary,
+                              ),
                             ),
                           ),
                           onPressed: _importFromExcel,

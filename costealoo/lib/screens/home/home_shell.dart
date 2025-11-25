@@ -75,7 +75,7 @@ class _HomeShellState extends State<HomeShell> {
                                 BoxShadow(
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                 ),
                               ],
                             ),
@@ -124,10 +124,10 @@ class _HomeShellState extends State<HomeShell> {
                                     ),
                                     const SizedBox(height: 12),
 
-                                    Wrap(
+                                    const Wrap(
                                       spacing: 16,
                                       runSpacing: 16,
-                                      children: const [
+                                      children: [
                                         SectionCard(title: 'Nombre planilla'),
                                         SectionCard(title: 'Nombre planilla'),
                                       ],

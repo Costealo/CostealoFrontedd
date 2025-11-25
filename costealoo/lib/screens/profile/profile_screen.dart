@@ -54,8 +54,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Más adelante acá abrimos la pantalla de método de pago real.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content:
-            Text('Aquí se abrirá la pantalla para cambiar el método de pago.'),
+        content: Text(
+          'Aquí se abrirá la pantalla para cambiar el método de pago.',
+        ),
       ),
     );
   }
@@ -112,8 +113,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           child: Icon(
                                             Icons.person_outline,
                                             size: 48,
-                                            color:
-                                                Colors.grey.withOpacity(0.8),
+                                            color: Colors.grey.withValues(
+                                              alpha: 0.8,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -124,16 +126,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             TextButton.icon(
                                               onPressed: () {
                                                 // Más adelante: abrir selector de imagen
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
-                                                        'Aquí podrás cambiar tu foto de perfil.'),
+                                                      'Aquí podrás cambiar tu foto de perfil.',
+                                                    ),
                                                   ),
                                                 );
                                               },
                                               icon: const Icon(
-                                                  Icons.edit_outlined),
+                                                Icons.edit_outlined,
+                                              ),
                                               label: const Text('Editar'),
                                             ),
                                           ],
@@ -143,16 +148,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 24),
 
                                     _buildLabel('Nombre'),
-                                    TextField(
-                                      controller: _nameCtrl,
-                                    ),
+                                    TextField(controller: _nameCtrl),
                                     const SizedBox(height: 14),
 
                                     _buildLabel('Correo electrónico'),
                                     TextField(
                                       controller: _emailCtrl,
-                                      keyboardType:
-                                          TextInputType.emailAddress,
+                                      keyboardType: TextInputType.emailAddress,
                                     ),
                                     const SizedBox(height: 14),
 
@@ -175,9 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     const SizedBox(height: 14),
 
                                     _buildLabel('Organización'),
-                                    TextField(
-                                      controller: _organizationCtrl,
-                                    ),
+                                    TextField(controller: _organizationCtrl),
                                   ],
                                 ),
                               ),
@@ -219,22 +219,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
 
                                     AnimatedCrossFade(
-                                      duration:
-                                          const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
                                       firstChild: const SizedBox.shrink(),
                                       secondChild: Padding(
-                                        padding:
-                                            const EdgeInsets.only(top: 8.0),
+                                        padding: const EdgeInsets.only(
+                                          top: 8.0,
+                                        ),
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             _buildUpgradeOption(
-                                                'Básico · Bs 29,99/mes'),
+                                              'Básico · Bs 29,99/mes',
+                                            ),
                                             _buildUpgradeOption(
-                                                'Estándar · Bs 49,99/mes'),
+                                              'Estándar · Bs 49,99/mes',
+                                            ),
                                             _buildUpgradeOption(
-                                                'Premium · Bs 89,99/mes'),
+                                              'Premium · Bs 89,99/mes',
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -307,12 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
   }
 

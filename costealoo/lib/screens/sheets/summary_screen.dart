@@ -32,16 +32,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
       currentPrice: 18.50,
       margin: 42.0,
     ),
-    _SheetSummary(
-      name: 'Pan artesanal',
-      currentPrice: 8.20,
-      margin: 38.0,
-    ),
-    _SheetSummary(
-      name: 'Galletas de avena',
-      currentPrice: 12.40,
-      margin: 55.0,
-    ),
+    _SheetSummary(name: 'Pan artesanal', currentPrice: 8.20, margin: 38.0),
+    _SheetSummary(name: 'Galletas de avena', currentPrice: 12.40, margin: 55.0),
   ];
 
   // Lista filtrada para mostrar
@@ -74,8 +66,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
             child: Container(
               color: CostealoColors.primaryLight,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -95,7 +89,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                           BoxShadow(
                             blurRadius: 8,
                             offset: const Offset(0, 3),
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                           ),
                         ],
                       ),
@@ -109,13 +103,17 @@ class _SummaryScreenState extends State<SummaryScreen> {
                               decoration: InputDecoration(
                                 hintText: 'Buscar por nombre de producto',
                                 border: InputBorder.none,
-                                hintStyle:
-                                    TextStyle(color: Colors.grey.shade500),
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                ),
                               ),
                             ),
                           ),
-                          Icon(Icons.search,
-                              color: Colors.grey.shade600, size: 22),
+                          Icon(
+                            Icons.search,
+                            color: Colors.grey.shade600,
+                            size: 22,
+                          ),
                         ],
                       ),
                     ),

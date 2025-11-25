@@ -370,7 +370,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   'name': nameController.text.trim(),
                 });
 
-                if (mounted) {
+                if (context.mounted) {
                   setState(() {
                     _sheetNameController.text = nameController.text.trim();
                   });
@@ -380,7 +380,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   );
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error al actualizar: $e')),
                   );
@@ -1108,7 +1108,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Error al cargar productos'),
           backgroundColor: Colors.red,
         ),

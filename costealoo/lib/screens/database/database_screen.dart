@@ -283,22 +283,6 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                               ],
                             ),
                           ),
-
-                          // Botón para aumentar columnas (placeholder)
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: TextButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text('Aumentar campos/columnas'),
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Función próximamente'),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
                         ],
                       ),
                     ),

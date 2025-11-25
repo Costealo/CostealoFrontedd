@@ -25,16 +25,8 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  // Lista completa (luego se reemplaza por datos del backend)
-  final List<_SheetSummary> _allSheets = [
-    _SheetSummary(
-      name: 'Hamburguesa clásica',
-      currentPrice: 18.50,
-      margin: 42.0,
-    ),
-    _SheetSummary(name: 'Pan artesanal', currentPrice: 8.20, margin: 38.0),
-    _SheetSummary(name: 'Galletas de avena', currentPrice: 12.40, margin: 55.0),
-  ];
+  // Lista completa (se llenará con datos del backend)
+  final List<_SheetSummary> _allSheets = [];
 
   // Lista filtrada para mostrar
   late List<_SheetSummary> _filteredSheets;

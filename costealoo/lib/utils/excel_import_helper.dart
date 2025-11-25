@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
-import 'dart:io';
+// Importación condicional para evitar dart:io en web
+import 'dart:typed_data' show Uint8List;
 
 class ExcelImportHelper {
   /// Importa productos desde un archivo Excel
@@ -18,15 +19,14 @@ class ExcelImportHelper {
       }
 
       // Leer el archivo Excel
-      // En Web usamos bytes, en móvil/desktop usamos path
-      var bytes = result.files.single.bytes;
+      // En Web usamos bytes directamente
+      Uint8List? bytes = result.files.single.bytes;
 
       if (bytes == null) {
-        // Fallback para plataformas móviles/desktop
-        if (result.files.single.path == null) {
-          throw Exception('No se pudo leer el archivo');
-        }
-        bytes = File(result.files.single.path!).readAsBytesSync();
+        throw Exception(
+          'No se pudo leer el archivo. Asegúrate de estar usando '
+          'un navegador compatible o intenta con otro archivo.',
+        );
       }
 
       var excel = Excel.decodeBytes(bytes);

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
 import 'package:costealoo/widgets/section_card.dart';
-import 'package:costealoo/screens/database/database_view_screen.dart';
 import 'package:costealoo/services/auth_service.dart';
 import 'package:costealoo/screens/database/database_screen.dart';
 import 'package:costealoo/services/database_service.dart';
@@ -94,20 +93,20 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
   }
 
   Future<void> _openDatabase(Map<String, dynamic> database) async {
-    // Navegar a la pantalla de visualización
+    // Navegar a la pantalla de edición
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DatabaseViewScreen(
-          databaseId: database['id']?.toString() ?? '',
-          databaseName: database['name'] as String,
-          products: (database['products'] as List).cast<Map<String, dynamic>>(),
+        builder: (context) => DatabaseScreen(
+          initialName: database['name'] as String,
+          preLoadedProducts: (database['products'] as List?)
+              ?.cast<Map<String, dynamic>>(),
         ),
       ),
     );
 
-    // Si se renombró, actualizar lista
-    if (result != null && result is Map && result['newName'] != null) {
+    // Si se publicó o actualizó, recargar lista
+    if (result != null && result is Map && result['published'] == true) {
       _loadDatabases();
     }
   }

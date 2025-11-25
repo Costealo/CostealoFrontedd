@@ -48,10 +48,11 @@ class DatabaseService {
     return newDb;
   }
 
-  /// Update a database (e.g. rename)
+  /// Update a database (rename and update products)
   Future<void> updateDatabase({
     required String id,
     required String name,
+    required List<Map<String, dynamic>> products,
   }) async {
     await _ensureLoaded();
     // Simulate API delay
@@ -61,6 +62,7 @@ class DatabaseService {
     final index = _mockDatabases.indexWhere((db) => db['id'] == id);
     if (index != -1) {
       _mockDatabases[index]['name'] = name;
+      _mockDatabases[index]['products'] = products;
       await _saveToPrefs();
     }
   }

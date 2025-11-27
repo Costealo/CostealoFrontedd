@@ -66,6 +66,7 @@ class _DatabaseViewScreenState extends State<DatabaseViewScreen> {
           await DatabaseService().updateDatabase(
             id: widget.databaseId,
             name: newName,
+            products: widget.products,
           );
         }
 

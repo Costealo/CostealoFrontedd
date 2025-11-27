@@ -7,11 +7,13 @@ import 'package:costealoo/services/api_client.dart';
 class DatabaseScreen extends StatefulWidget {
   final String initialName;
   final List<Map<String, dynamic>>? preLoadedProducts;
+  final String? databaseId; // ← FIXED: String instead of int
 
   const DatabaseScreen({
     super.key,
     this.initialName = 'Nueva Base de Datos',
     this.preLoadedProducts,
+    this.databaseId,
   });
 
   @override
@@ -23,9 +25,16 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   List<Map<String, TextEditingController>> productRows = [];
   bool _isLoading = false;
 
+  // ← NUEVO: Controller para nombre editable
+  late TextEditingController _nameController;
+
   @override
   void initState() {
     super.initState();
+
+    // ← NUEVO: Inicializar controller de nombre
+    _nameController = TextEditingController(text: widget.initialName);
+
     // Si hay productos pre-cargados, cargarlos
     if (widget.preLoadedProducts != null &&
         widget.preLoadedProducts!.isNotEmpty) {
@@ -54,6 +63,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   @override
   void dispose() {
     // Limpiar todos los controladores
+    _nameController.dispose(); // ← NUEVO
     for (var row in productRows) {
       row['id']?.dispose();
       row['name']?.dispose();
@@ -83,6 +93,17 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   }
 
   Future<void> _publish() async {
+    // Validar nombre
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El nombre de la base de datos no puede estar vacío'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     // Recopilar datos de los productos
     final List<Map<String, dynamic>> products = [];
 
@@ -111,11 +132,21 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Guardar en API
-      await DatabaseService().createDatabase(
-        name: widget.initialName,
-        products: products,
-      );
+      // ← NUEVO: Verificar si es edición o creación
+      if (widget.databaseId != null) {
+        // UPDATE: Actualizar base de datos existente
+        await DatabaseService().updateDatabase(
+          id: widget.databaseId!,
+          name: _nameController.text.trim(),
+          products: products,
+        );
+      } else {
+        // CREATE: Crear nueva base de datos
+        await DatabaseService().createDatabase(
+          name: _nameController.text.trim(),
+          products: products,
+        );
+      }
 
       if (!mounted) return;
 
@@ -165,16 +196,33 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Título y info
-                  Row(
+                  // Header con campo de nombre editable
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.initialName, style: textTheme.headlineSmall),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () {
-                          // TODO: Configuración
-                        },
+                      Text(
+                        widget.databaseId != null
+                            ? 'Editar Base de Datos'
+                            : 'Nueva Base de Datos',
+                        style: textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _nameController,
+                        style: textTheme.titleLarge,
+                        decoration: InputDecoration(
+                          labelText: 'Nombre de la base de datos',
+                          hintText: 'Ej: Mi Empresa',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -281,22 +329,6 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-
-                          // Botón para aumentar columnas (placeholder)
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: TextButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text('Aumentar campos/columnas'),
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Función próximamente'),
-                                  ),
-                                );
-                              },
                             ),
                           ),
                         ],

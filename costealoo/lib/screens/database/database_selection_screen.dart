@@ -99,6 +99,7 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
       MaterialPageRoute(
         builder: (context) => DatabaseScreen(
           initialName: database['name'] as String,
+          databaseId: database['id'] as String?, // Pass ID for editing
           preLoadedProducts: (database['products'] as List?)
               ?.cast<Map<String, dynamic>>(),
         ),

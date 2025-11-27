@@ -520,256 +520,159 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                           const SizedBox(height: 20),
 
                           Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // IZQUIERDA: ingredientes + totales
-                                Expanded(
-                                  flex: 3,
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Lista de ingredientes:',
-                                          style: textTheme.bodyMedium!.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildIngredientList(context),
-                                        const SizedBox(height: 24),
-
-                                        _buildEditableDecimalField(
-                                          label: 'Total',
-                                          controller: _totalController,
-                                          readOnly: true, // Siempre calculado
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildEditableDecimalField(
-                                          label: 'Cantidad de ración',
-                                          controller: _cantidadRacionController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Peso total',
-                                          controller: _pesoTotalController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Peso unitario',
-                                          controller: _pesoUnitarioController,
-                                        ),
-                                        const SizedBox(height: 28),
-
-                                        Text(
-                                          'Costos adicionales:',
-                                          style: textTheme.bodyMedium!.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _buildExtraCostList(context),
-                                        const SizedBox(height: 24),
-
-                                        _buildReadOnlyField(
-                                          label: 'Total',
-                                          controller: _totalFinalController,
-                                        ),
-                                        const SizedBox(height: 28),
-
-                                        // ─────────────────────────────────────
-                                        // CÁLCULOS FINALES
-                                        // ─────────────────────────────────────
-                                        _buildReadOnlyField(
-                                          label: 'Costos operativos (20%)',
-                                          controller: _operatingCostsController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Costo neto',
-                                          controller: _netCostController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Costo impuestos (16%)',
-                                          controller: _taxController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Costo total',
-                                          controller: _totalCostController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _buildReadOnlyField(
-                                                label: 'Costo unitario',
-                                                controller: _unitCostController,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: _buildEditableDecimalField(
-                                                label: 'Cant. producto',
-                                                controller:
-                                                    _productQuantityController,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 28),
-
-                                        _buildReadOnlyField(
-                                          label: 'Margen de ganancias',
-                                          controller: _marginController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildReadOnlyField(
-                                          label: 'Precio de venta sugerido',
-                                          controller: _suggestedPriceController,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        _buildEditableDecimalField(
-                                          label: 'Precio de venta',
-                                          controller: _salePriceController,
-                                        ),
-                                        const SizedBox(height: 40),
-
-                                        // Botones de acción
-                                        if (!widget.isReadOnly)
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              OutlinedButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('Cancelar'),
-                                              ),
-                                              const SizedBox(width: 16),
-                                              ElevatedButton(
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor:
-                                                      CostealoColors.primary,
-                                                  foregroundColor: Colors.white,
-                                                ),
-                                                onPressed: _isPublishing
-                                                    ? null
-                                                    : _publishSheet,
-                                                child: _isPublishing
-                                                    ? const SizedBox(
-                                                        width: 20,
-                                                        height: 20,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              color:
-                                                                  Colors.white,
-                                                              strokeWidth: 2,
-                                                            ),
-                                                      )
-                                                    : const Text('Publicar'),
-                                              ),
-                                              const SizedBox(width: 16),
-                                              OutlinedButton(
-                                                onPressed: () {},
-                                                child: const Text(
-                                                  'Guardar borrador',
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                      ],
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Lista de ingredientes:',
+                                    style: textTheme.bodyMedium!.copyWith(
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(height: 8),
+                                  _buildIngredientList(context),
+                                  const SizedBox(height: 24),
 
-                                const SizedBox(width: 24),
+                                  _buildEditableDecimalField(
+                                    label: 'Total',
+                                    controller: _totalController,
+                                    readOnly: true, // Siempre calculado
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildEditableDecimalField(
+                                    label: 'Cantidad de ración',
+                                    controller: _cantidadRacionController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Peso total',
+                                    controller: _pesoTotalController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Peso unitario',
+                                    controller: _pesoUnitarioController,
+                                  ),
+                                  const SizedBox(height: 28),
 
-                                // DERECHA: cantidad (columna) + moneda
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
+                                  Text(
+                                    'Costos adicionales:',
+                                    style: textTheme.bodyMedium!.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildExtraCostList(context),
+                                  const SizedBox(height: 24),
+
+                                  _buildReadOnlyField(
+                                    label: 'Total',
+                                    controller: _totalFinalController,
+                                  ),
+                                  const SizedBox(height: 28),
+
+                                  // ─────────────────────────────────────
+                                  // CÁLCULOS FINALES
+                                  // ─────────────────────────────────────
+                                  _buildReadOnlyField(
+                                    label: 'Costos operativos (20%)',
+                                    controller: _operatingCostsController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Costo neto',
+                                    controller: _netCostController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Costo impuestos (16%)',
+                                    controller: _taxController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Costo total',
+                                    controller: _totalCostController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Row(
                                     children: [
-                                      Text(
-                                        'Cantidad',
-                                        style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 8),
                                       Expanded(
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              18,
-                                            ),
-                                            color: CostealoColors.cardSoft,
-                                          ),
-                                          alignment: Alignment.topCenter,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                          ),
-                                          child: Text(
-                                            'Los campos de cantidad\n'
-                                            'admiten 2 decimales.',
-                                            textAlign: TextAlign.center,
-                                            style: textTheme.bodySmall!
-                                                .copyWith(
-                                                  color: Colors.grey[700],
-                                                ),
-                                          ),
+                                        child: _buildReadOnlyField(
+                                          label: 'Costo unitario',
+                                          controller: _unitCostController,
                                         ),
                                       ),
-                                      const SizedBox(height: 24),
-                                      Text(
-                                        'Moneda:',
-                                        style: textTheme.bodyMedium!.copyWith(
-                                          fontWeight: FontWeight.w600,
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: _buildEditableDecimalField(
+                                          label: 'Cant. producto',
+                                          controller:
+                                              _productQuantityController,
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ToggleButtons(
-                                        isSelected: [
-                                          _currency == 'Bs',
-                                          _currency == 'USD',
-                                        ],
-                                        onPressed: widget.isReadOnly
-                                            ? null
-                                            : (index) {
-                                                setState(() {
-                                                  _currency = index == 0
-                                                      ? 'Bs'
-                                                      : 'USD';
-                                                });
-                                              },
-                                        borderRadius: BorderRadius.circular(20),
-                                        children: const [
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 8,
-                                            ),
-                                            child: Text('Bs'),
-                                          ),
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 8,
-                                            ),
-                                            child: Text('\$us'),
-                                          ),
-                                        ],
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 28),
+
+                                  _buildReadOnlyField(
+                                    label: 'Margen de ganancias',
+                                    controller: _marginController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildReadOnlyField(
+                                    label: 'Precio de venta sugerido',
+                                    controller: _suggestedPriceController,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildEditableDecimalField(
+                                    label: 'Precio de venta',
+                                    controller: _salePriceController,
+                                  ),
+                                  const SizedBox(height: 40),
+
+                                  // Botones de acción
+                                  if (!widget.isReadOnly)
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        OutlinedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Cancelar'),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                CostealoColors.primary,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          onPressed: _isPublishing
+                                              ? null
+                                              : _publishSheet,
+                                          child: _isPublishing
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Text('Publicar'),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        OutlinedButton(
+                                          onPressed: () {},
+                                          child: const Text('Guardar borrador'),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

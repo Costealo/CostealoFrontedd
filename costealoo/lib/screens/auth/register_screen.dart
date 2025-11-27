@@ -222,27 +222,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderRadius: BorderRadius.circular(24),
             ),
             elevation: 10,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Crear cuenta', style: textTheme.headlineMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    _step == 0
-                        ? 'Paso 1 de 2 · Regístrate'
-                        : 'Paso 2 de 2 · Método de pago',
-                    style: textTheme.bodyMedium!.copyWith(
-                      color: Colors.grey[700],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 32,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Crear cuenta', style: textTheme.headlineMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      _step == 0
+                          ? 'Paso 1 de 2 · Regístrate'
+                          : 'Paso 2 de 2 · Método de pago',
+                      style: textTheme.bodyMedium!.copyWith(
+                        color: Colors.grey[700],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_step == 0)
-                    _buildStep1(textTheme)
-                  else
-                    _buildStep2(textTheme),
-                ],
+                    const SizedBox(height: 24),
+                    if (_step == 0)
+                      _buildStep1(textTheme)
+                    else
+                      _buildStep2(textTheme),
+                  ],
+                ),
               ),
             ),
           ),

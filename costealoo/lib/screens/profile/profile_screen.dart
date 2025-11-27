@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
-import 'package:costealoo/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,44 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _passwordVisible = false;
   bool _showUpgradeOptions = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final currentUser = AuthService().currentUser;
-    if (currentUser != null && currentUser.id != 0) {
-      // Intentar actualizar datos del backend
-      await AuthService().fetchUserProfile(currentUser.id);
-    }
-
-    if (!mounted) return;
-
-    final user = AuthService().currentUser;
-    if (user != null) {
-      setState(() {
-        _nameCtrl.text = user.nombre;
-        _emailCtrl.text = user.correo;
-        _organizationCtrl.text = user.organizacion;
-
-        if (user.tipoSuscripcion != null) {
-          _subscriptionCtrl.text = user.tipoSuscripcion!;
-        }
-        if (user.tarjetaUltimos4Digitos != null) {
-          _last4Ctrl.text = user.tarjetaUltimos4Digitos!;
-        }
-        if (user.tarjetaFechaVencimiento != null) {
-          _expiryCtrl.text = user.tarjetaFechaVencimiento!;
-        }
-        if (user.tarjetaCodigoSeguridad != null) {
-          _cvvCtrl.text = user.tarjetaCodigoSeguridad!;
-        }
-      });
-    }
-  }
 
   @override
   void dispose() {

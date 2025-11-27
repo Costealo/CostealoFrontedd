@@ -96,24 +96,25 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
-      print('GET Request: $url');
       final response = await http.get(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
       );
-      print('GET Response (${response.statusCode}): ${response.body}');
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (response.body.isEmpty) return {};
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        return responseData;
       } else {
         throw ApiException(
-          message: 'Error ${response.statusCode}: ${response.body}',
+          message:
+              responseData['message'] as String? ??
+              responseData['error'] as String? ??
+              'Error desconocido',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
-      print('GET Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',
@@ -129,26 +130,26 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
-      print('PUT Request: $url');
-      print('PUT Body: $body');
       final response = await http.put(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
         body: jsonEncode(body),
       );
-      print('PUT Response (${response.statusCode}): ${response.body}');
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (response.body.isEmpty) return {};
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        return responseData;
       } else {
         throw ApiException(
-          message: 'Error ${response.statusCode}: ${response.body}',
+          message:
+              responseData['message'] as String? ??
+              responseData['error'] as String? ??
+              'Error desconocido',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
-      print('PUT Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',
@@ -163,24 +164,25 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
-      print('DELETE Request: $url');
       final response = await http.delete(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
       );
-      print('DELETE Response (${response.statusCode}): ${response.body}');
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (response.body.isEmpty) return {};
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        return responseData;
       } else {
         throw ApiException(
-          message: 'Error ${response.statusCode}: ${response.body}',
+          message:
+              responseData['message'] as String? ??
+              responseData['error'] as String? ??
+              'Error desconocido',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
-      print('DELETE Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',

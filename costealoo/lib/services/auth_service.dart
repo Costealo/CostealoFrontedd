@@ -118,8 +118,6 @@ class AuthService {
     String? subscription,
     String? paymentType,
     String? last4Digits,
-    String? expiryDate,
-    String? cvv,
   }) async {
     try {
       // Step 1: Create User

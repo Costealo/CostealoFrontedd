@@ -15,10 +15,13 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as int,
-      nombre: json['nombre'] as String,
-      correo: json['correo'] as String,
-      organizacion: json['organizacion'] as String,
+      id: json['id'] as int? ?? 0,
+      // Backend uses 'name', frontend uses 'nombre'
+      nombre: json['name'] as String? ?? json['nombre'] as String? ?? '',
+      // Backend uses 'email', frontend uses 'correo'
+      correo: json['email'] as String? ?? json['correo'] as String? ?? '',
+      // Backend doesn't return 'organizacion' in User object usually
+      organizacion: json['organizacion'] as String? ?? 'Empresa',
       token: json['token'] as String?,
     );
   }

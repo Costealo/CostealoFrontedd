@@ -75,4 +75,13 @@ class DatabaseService {
 
     return List<Map<String, dynamic>>.from(_mockDatabases);
   }
+
+  /// Delete a database
+  Future<void> deleteDatabase(String id) async {
+    await _ensureLoaded();
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    _mockDatabases.removeWhere((db) => db['id'] == id);
+    await _saveToPrefs();
+  }
 }

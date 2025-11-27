@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   // Azure API base URL
   static const String baseUrl =
-      'https://app-251124161156.azurewebsites.net/api';
+      'https://app-251126163117.azurewebsites.net/api';
 
   String? _token;
 

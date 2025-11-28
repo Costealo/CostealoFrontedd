@@ -1,6 +1,5 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
-// Importación condicional para evitar dart:io en web
 import 'dart:typed_data' show Uint8List;
 
 class ExcelImportHelper {
@@ -9,23 +8,28 @@ class ExcelImportHelper {
   static Future<List<Map<String, dynamic>>?> importProductsFromExcel() async {
     try {
       // Abrir selector de archivos
+      // withData: true fuerza la lectura de bytes (necesario en web)
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls'],
+        withData: true, // Fuerza la carga de bytes en web
       );
 
       if (result == null) {
         return null; // Usuario canceló
       }
 
-      // Leer el archivo Excel
-      // En Web usamos bytes directamente
-      Uint8List? bytes = result.files.single.bytes;
+      PlatformFile file = result.files.single;
 
-      if (bytes == null) {
+      // Obtener bytes del archivo
+      Uint8List? bytes = file.bytes;
+
+      if (bytes == null || bytes.isEmpty) {
         throw Exception(
-          'No se pudo leer el archivo. Asegúrate de estar usando '
-          'un navegador compatible o intenta con otro archivo.',
+          'No se pudo leer el archivo. Asegúrate de:\n'
+          '1. Estar usando un navegador compatible (Chrome o Edge)\n'
+          '2. El archivo no esté corrupto\n'
+          '3. Tener permisos para leer el archivo',
         );
       }
 

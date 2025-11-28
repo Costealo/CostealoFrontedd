@@ -72,25 +72,28 @@ class AuthService {
   }) async {
     try {
       // Call the API register endpoint
-      // Note: Backend RegisterDto only accepts nombre, email, and password
-      await _apiClient.post(
-        '/Auth/register', // Note: Capital 'A' in Auth
+      // Backend uses /api/Users POST with UserRegistrationDto
+      final response = await _apiClient.post(
+        '/Users', // Changed from '/Auth/register'
         body: {
-          'nombre': nombre,
-          'email': correo, // Backend expects 'email', not 'correo'
+          'name': nombre, // Backend expects 'name', not 'nombre'
+          'email': correo, // Backend expects 'email'
           'password': password,
-          // Backend doesn't support organizacion, subscription, paymentType, or last4Digits
+          'role': 1, // UserRole: 0=SuperAdmin, 1=Admin, 2=User - using Admin as default
         },
       );
 
-      // Backend doesn't return user data on registration
-      // Create a user object with the provided data
+      // Backend returns a User object with id, name, email, role
+      final userId = response['id'] as int? ?? 0;
+      final userName = response['name'] as String? ?? nombre;
+      
+      // Create a user object with the returned data
       _currentUser = User(
-        id: 0, // Placeholder
-        nombre: nombre,
+        id: userId,
+        nombre: userName,
         correo: correo,
         organizacion: organizacion,
-        token: null, // Register doesn't return a token
+        token: null, // Register doesn't return a token, user needs to login
       );
 
       return _currentUser!;

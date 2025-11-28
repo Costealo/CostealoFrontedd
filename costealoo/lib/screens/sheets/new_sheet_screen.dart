@@ -30,11 +30,13 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   final List<TextEditingController> _ingredientNames = [];
   final List<TextEditingController> _ingredientQuantities = [];
   final List<TextEditingController> _ingredientAmounts = [];
+  final List<int?> _ingredientIds = []; // Track IDs
 
   // Costos adicionales
   final List<TextEditingController> _extraNames = [];
   final List<TextEditingController> _extraQuantities = [];
   final List<TextEditingController> _extraAmounts = [];
+  final List<int?> _extraIds = []; // Track IDs
 
   // Totales y datos generales (por ahora solo UI)
   final TextEditingController _totalController = TextEditingController(
@@ -123,6 +125,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _ingredientNames.add(nameCtrl);
       _ingredientQuantities.add(qtyCtrl);
       _ingredientAmounts.add(amountCtrl);
+      _ingredientIds.add(ing['priceItemId']); // Load ID
     }
 
     // Cargar extras
@@ -140,6 +143,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _extraNames.add(nameCtrl);
       _extraQuantities.add(qtyCtrl);
       _extraAmounts.add(amountCtrl);
+      _extraIds.add(ext['priceItemId']); // Load ID
     }
 
     // Si no hay filas, añadir al menos una vacía (solo si no es readOnly)
@@ -270,6 +274,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   _ingredientQuantities[i].text.replaceAll(',', '.'),
                 ) ??
                 0.0,
+            'priceItemId': _ingredientIds[i], // Include ID
           });
         }
       }
@@ -287,6 +292,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   _extraQuantities[i].text.replaceAll(',', '.'),
                 ) ??
                 0.0,
+            'priceItemId': _extraIds[i], // Include ID
           });
         }
       }
@@ -444,6 +450,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _ingredientNames.add(nameCtrl);
       _ingredientQuantities.add(qtyCtrl);
       _ingredientAmounts.add(amountCtrl);
+      _ingredientIds.add(null); // Init with null
     });
   }
 
@@ -457,6 +464,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _extraNames.add(nameCtrl);
       _extraQuantities.add(qtyCtrl);
       _extraAmounts.add(amountCtrl);
+      _extraIds.add(null); // Init with null
     });
   }
 
@@ -1028,6 +1036,12 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     nameControllers[index].text = prod['name'] ?? '';
     if (prod['price'] != null) {
       qtyControllers[index].text = prod['price'].toString();
+      // Store ID if available
+      if (nameControllers == _ingredientNames) {
+        _ingredientIds[index] = prod['id'];
+      } else if (nameControllers == _extraNames) {
+        _extraIds[index] = prod['id'];
+      }
       // Disparar recálculo
       _calculateValues();
     }

@@ -96,25 +96,28 @@ class ApiClient {
   }) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
+      print('GET Request: $url');
       final response = await http.get(
         url,
         headers: _getHeaders(includeAuth: includeAuth),
       );
-
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      print('GET Response (${response.statusCode}): ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return responseData;
+        if (response.body.isEmpty) return {};
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return {'data': decoded};
+        }
+        return decoded as Map<String, dynamic>;
       } else {
         throw ApiException(
-          message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
-              'Error desconocido',
+          message: 'Error ${response.statusCode}: ${response.body}',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
+      print('GET Error: $e');
       if (e is ApiException) rethrow;
       throw ApiException(
         message: 'Error de conexión: ${e.toString()}',

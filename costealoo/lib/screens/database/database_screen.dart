@@ -27,6 +27,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
 
   // ← NUEVO: Controller para nombre editable
   late TextEditingController _nameController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   void dispose() {
     // Limpiar todos los controladores
     _nameController.dispose(); // ← NUEVO
+    _scrollController.dispose();
     for (var row in productRows) {
       row['id']?.dispose();
       row['name']?.dispose();
@@ -274,8 +276,10 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                             child: Stack(
                               children: [
                                 Scrollbar(
+                                  controller: _scrollController,
                                   thumbVisibility: true,
                                   child: ListView.builder(
+                                    controller: _scrollController,
                                     itemCount: productRows.length,
                                     itemBuilder: (context, index) {
                                       return _buildEditableRow(index);

@@ -188,6 +188,27 @@ class AuthService {
     }
   }
 
+  /// Update user profile
+  Future<void> updateUser(int id, Map<String, dynamic> data) async {
+    await _apiClient.put('/Users/$id', body: data, includeAuth: true);
+    // Update local state
+    updateCurrentUser(nombre: data['name'], organizacion: data['organization']);
+  }
+
+  /// Get current user subscription
+  Future<Map<String, dynamic>?> getSubscription() async {
+    try {
+      final response = await _apiClient.get(
+        '/Subscriptions/me', // Assuming this endpoint exists based on standard REST patterns
+        includeAuth: true,
+      );
+      return response;
+    } catch (e) {
+      print('Error fetching subscription: $e');
+      return null;
+    }
+  }
+
   /// Get the API client instance
   ApiClient get apiClient => _apiClient;
 }

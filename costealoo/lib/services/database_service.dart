@@ -1,51 +1,48 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:costealoo/services/auth_service.dart';
 
 class DatabaseService {
-  // Mock storage (static to persist across instances)
-  static List<Map<String, dynamic>> _mockDatabases = [];
-  static bool _isLoaded = false;
-
-  Future<void> _ensureLoaded() async {
-    if (_isLoaded) return;
-    final prefs = await SharedPreferences.getInstance();
-    final String? stored = prefs.getString('mock_databases');
-    if (stored != null) {
-      try {
-        final List<dynamic> decoded = jsonDecode(stored);
-        _mockDatabases = decoded.cast<Map<String, dynamic>>();
-      } catch (e) {
-        // print('Error loading databases: $e');
-      }
-    }
-    _isLoaded = true;
-  }
-
-  Future<void> _saveToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('mock_databases', jsonEncode(_mockDatabases));
-  }
+  final _authService = AuthService();
 
   /// Create a new database
   Future<Map<String, dynamic>> createDatabase({
     required String name,
     required List<Map<String, dynamic>> products,
   }) async {
-    await _ensureLoaded();
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 1));
+    final user = _authService.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
 
-    final newDb = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'name': name,
-      'products': products,
-    };
+    // 1. Create the database header
+    // Sending Name and UserId.
+    // NOTE: This is the correct implementation. It will fail with 400 until the backend
+    // is updated to use a DTO that doesn't require the full User object.
+    final requestBody = {'Name': name, 'UserId': user.id};
 
-    _mockDatabases.add(newDb);
-    await _saveToPrefs();
+    print('DEBUG - Creating database with body: $requestBody');
 
-    // Return success response
-    return newDb;
+    final response = await _authService.apiClient.post(
+      '/PriceDatabase',
+      body: requestBody,
+      includeAuth: true,
+    );
+
+    final newDbId = response['id'];
+
+    // 2. Add items if any
+    if (products.isNotEmpty) {
+      for (var product in products) {
+        await _authService.apiClient.post(
+          '/PriceDatabase/$newDbId/items',
+          body: {
+            'product': product['name'],
+            'price': product['price'],
+            'unit': product['unit'],
+          },
+          includeAuth: true,
+        );
+      }
+    }
+
+    return {'id': newDbId.toString(), 'name': name, 'products': products};
   }
 
   /// Update a database (rename and update products)
@@ -54,34 +51,73 @@ class DatabaseService {
     required String name,
     required List<Map<String, dynamic>> products,
   }) async {
-    await _ensureLoaded();
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _authService.apiClient.put(
+      '/PriceDatabase/$id',
+      body: {'name': name},
+      includeAuth: true,
+    );
 
-    // Update in mock list
-    final index = _mockDatabases.indexWhere((db) => db['id'] == id);
-    if (index != -1) {
-      _mockDatabases[index]['name'] = name;
-      _mockDatabases[index]['products'] = products;
-      await _saveToPrefs();
+    final existingDb = await _authService.apiClient.get(
+      '/PriceDatabase/$id',
+      includeAuth: true,
+    );
+    final existingItems = (existingDb['items'] as List<dynamic>?) ?? [];
+
+    for (var item in existingItems) {
+      await _authService.apiClient.delete(
+        '/PriceDatabase/$id/items/${item['id']}',
+        includeAuth: true,
+      );
+    }
+
+    for (var product in products) {
+      await _authService.apiClient.post(
+        '/PriceDatabase/$id/items',
+        body: {
+          'product': product['name'],
+          'price': product['price'],
+          'unit': product['unit'],
+        },
+        includeAuth: true,
+      );
     }
   }
 
   /// Get all databases
   Future<List<Map<String, dynamic>>> getDatabases() async {
-    await _ensureLoaded();
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    final response = await _authService.apiClient.get(
+      '/PriceDatabase',
+      includeAuth: true,
+    );
 
-    return List<Map<String, dynamic>>.from(_mockDatabases);
+    if (response is List) {
+      return [];
+    }
+
+    final List<dynamic> data = response['data'] ?? [];
+
+    return data.map((db) {
+      return {
+        'id': db['id'].toString(),
+        'name': db['name'],
+        'products':
+            (db['items'] as List<dynamic>?)?.map((item) {
+              return {
+                'name': item['product'],
+                'price': item['price'],
+                'unit': item['unit'],
+              };
+            }).toList() ??
+            [],
+      };
+    }).toList();
   }
 
   /// Delete a database
   Future<void> deleteDatabase(String id) async {
-    await _ensureLoaded();
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    _mockDatabases.removeWhere((db) => db['id'] == id);
-    await _saveToPrefs();
+    await _authService.apiClient.delete(
+      '/PriceDatabase/$id',
+      includeAuth: true,
+    );
   }
 }

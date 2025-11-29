@@ -12,10 +12,9 @@ class DatabaseService {
     if (user == null) throw Exception('Usuario no autenticado');
 
     // 1. Create the database header
-    // Sending Name and UserId.
-    // NOTE: This is the correct implementation. It will fail with 400 until the backend
-    // is updated to use a DTO that doesn't require the full User object.
-    final requestBody = {'Name': name, 'UserId': user.id};
+    // Backend extracts UserId from JWT token automatically.
+    // CreatePriceDatabaseDto only accepts: Name (required), SourceUrl (optional)
+    final requestBody = {'Name': name};
 
     print('DEBUG - Creating database with body: $requestBody');
 

@@ -54,7 +54,7 @@ class DatabaseService {
     final user = _authService.currentUser;
     await _authService.apiClient.put(
       '/PriceDatabase/$id',
-      body: {'Name': name, 'UserId': user?.id},
+      body: {'id': int.parse(id), 'Name': name, 'UserId': user?.id},
       includeAuth: true,
     );
 

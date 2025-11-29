@@ -32,9 +32,9 @@ class DatabaseService {
         await _authService.apiClient.post(
           '/PriceDatabase/$newDbId/items',
           body: {
-            'product': product['name'],
-            'price': product['price'],
-            'unit': product['unit'],
+            'Product': product['name'],
+            'Price': product['price'],
+            'Unit': product['unit'],
           },
           includeAuth: true,
         );
@@ -74,9 +74,9 @@ class DatabaseService {
       await _authService.apiClient.post(
         '/PriceDatabase/$id/items',
         body: {
-          'product': product['name'],
-          'price': product['price'],
-          'unit': product['unit'],
+          'Product': product['name'],
+          'Price': product['price'],
+          'Unit': product['unit'],
         },
         includeAuth: true,
       );

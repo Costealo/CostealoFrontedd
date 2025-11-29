@@ -51,9 +51,10 @@ class DatabaseService {
     required String name,
     required List<Map<String, dynamic>> products,
   }) async {
+    final user = _authService.currentUser;
     await _authService.apiClient.put(
       '/PriceDatabase/$id',
-      body: {'name': name},
+      body: {'Name': name, 'UserId': user?.id},
       includeAuth: true,
     );
 

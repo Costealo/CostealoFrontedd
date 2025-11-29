@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   // Azure API base URL
-  static const String baseUrl =
-      'https://app-251126163117.azurewebsites.net/api';
+  // static const String baseUrl = 'https://app-251126163117.azurewebsites.net/api';
+  static const String baseUrl = 'http://localhost:5150/api';
 
   String? _token;
 
@@ -60,6 +60,7 @@ class ApiClient {
         }
       } else {
         // Handle error responses
+        print('ERROR Response (${response.statusCode}): ${response.body}');
         Map<String, dynamic>? errorData;
         try {
           errorData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -77,6 +78,7 @@ class ApiClient {
           message:
               errorData['message'] as String? ??
               errorData['error'] as String? ??
+              errorData['title'] as String? ??
               'Error desconocido',
           statusCode: response.statusCode,
         );
@@ -139,15 +141,34 @@ class ApiClient {
         body: jsonEncode(body),
       );
 
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Handle empty responses (204 No Content)
+        if (response.body.isEmpty) {
+          return {}; // Return empty map for empty responses
+        }
+
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         return responseData;
       } else {
+        // Handle error responses
+        print('ERROR Response (${response.statusCode}): ${response.body}');
+        Map<String, dynamic>? errorData;
+        try {
+          errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          throw ApiException(
+            message: response.body.isNotEmpty
+                ? response.body
+                : 'Error del servidor (${response.statusCode})',
+            statusCode: response.statusCode,
+          );
+        }
+
         throw ApiException(
           message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
+              errorData['message'] as String? ??
+              errorData['error'] as String? ??
+              errorData['title'] as String? ??
               'Error desconocido',
           statusCode: response.statusCode,
         );
@@ -172,15 +193,34 @@ class ApiClient {
         headers: _getHeaders(includeAuth: includeAuth),
       );
 
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Handle empty responses (204 No Content)
+        if (response.body.isEmpty) {
+          return {}; // Return empty map for empty responses
+        }
+
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         return responseData;
       } else {
+        // Handle error responses
+        print('ERROR Response (${response.statusCode}): ${response.body}');
+        Map<String, dynamic>? errorData;
+        try {
+          errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          throw ApiException(
+            message: response.body.isNotEmpty
+                ? response.body
+                : 'Error del servidor (${response.statusCode})',
+            statusCode: response.statusCode,
+          );
+        }
+
         throw ApiException(
           message:
-              responseData['message'] as String? ??
-              responseData['error'] as String? ??
+              errorData['message'] as String? ??
+              errorData['error'] as String? ??
+              errorData['title'] as String? ??
               'Error desconocido',
           statusCode: response.statusCode,
         );

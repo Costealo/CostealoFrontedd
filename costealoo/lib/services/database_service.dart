@@ -35,7 +35,6 @@ class DatabaseService {
             'Product': product['name'],
             'Price': product['price'],
             'Unit': product['unit'],
-            'PriceDatabaseId': int.parse(newDbId.toString()),
           },
           includeAuth: true,
         );
@@ -78,7 +77,6 @@ class DatabaseService {
           'Product': product['name'],
           'Price': product['price'],
           'Unit': product['unit'],
-          'PriceDatabaseId': int.parse(id),
         },
         includeAuth: true,
       );

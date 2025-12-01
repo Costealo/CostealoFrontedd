@@ -26,10 +26,10 @@ class DatabaseService {
 
     final newDbId = response['id'];
 
-    // 2. Add items if any
+    // 2. Add items if any (Parallel execution)
     if (products.isNotEmpty) {
-      for (var product in products) {
-        await _authService.apiClient.post(
+      final futures = products.map((product) {
+        return _authService.apiClient.post(
           '/PriceDatabase/$newDbId/items',
           body: {
             'Product': product['name'],
@@ -38,7 +38,8 @@ class DatabaseService {
           },
           includeAuth: true,
         );
-      }
+      });
+      await Future.wait(futures);
     }
 
     return {'id': newDbId.toString(), 'name': name, 'products': products};
@@ -63,23 +64,31 @@ class DatabaseService {
     );
     final existingItems = (existingDb['items'] as List<dynamic>?) ?? [];
 
-    for (var item in existingItems) {
-      await _authService.apiClient.delete(
-        '/PriceDatabase/$id/items/${item['id']}',
-        includeAuth: true,
-      );
+    // Delete existing items in parallel
+    if (existingItems.isNotEmpty) {
+      final deleteFutures = existingItems.map((item) {
+        return _authService.apiClient.delete(
+          '/PriceDatabase/$id/items/${item['id']}',
+          includeAuth: true,
+        );
+      });
+      await Future.wait(deleteFutures);
     }
 
-    for (var product in products) {
-      await _authService.apiClient.post(
-        '/PriceDatabase/$id/items',
-        body: {
-          'Product': product['name'],
-          'Price': product['price'],
-          'Unit': product['unit'],
-        },
-        includeAuth: true,
-      );
+    // Create new items in parallel
+    if (products.isNotEmpty) {
+      final createFutures = products.map((product) {
+        return _authService.apiClient.post(
+          '/PriceDatabase/$id/items',
+          body: {
+            'Product': product['name'],
+            'Price': product['price'],
+            'Unit': product['unit'],
+          },
+          includeAuth: true,
+        );
+      });
+      await Future.wait(createFutures);
     }
   }
 

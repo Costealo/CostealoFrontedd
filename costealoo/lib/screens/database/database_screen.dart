@@ -95,8 +95,11 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   }
 
   Future<void> _publish() async {
+    print('DEBUG - _publish called');
+
     // Validar nombre
     if (_nameController.text.trim().isEmpty) {
+      print('DEBUG - Validation failed: empty name');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('El nombre de la base de datos no puede estar vacío'),
@@ -106,6 +109,8 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
       return;
     }
 
+    print('DEBUG - Name validated: ${_nameController.text.trim()}');
+
     // Recopilar datos de los productos
     final List<Map<String, dynamic>> products = [];
 
@@ -113,7 +118,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
       // Solo agregar filas que tengan al menos el nombre
       if (row['name']!.text.isNotEmpty) {
         products.add({
-          'id': row['id']!.text,
+          // NO enviar 'id' - el backend lo genera automáticamente
           'name': row['name']!.text,
           'price': row['price']!.text,
           'unit': row['unit']!.text,
@@ -121,7 +126,11 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
       }
     }
 
+    print('DEBUG - Products collected: ${products.length} items');
+    print('DEBUG - Products: $products');
+
     if (products.isEmpty) {
+      print('DEBUG - Validation failed: no products');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Agrega al menos un producto'),
@@ -132,22 +141,27 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     }
 
     setState(() => _isLoading = true);
+    print('DEBUG - Loading state set to true');
 
     try {
       // ← NUEVO: Verificar si es edición o creación
       if (widget.databaseId != null) {
+        print('DEBUG - UPDATE mode, ID: ${widget.databaseId}');
         // UPDATE: Actualizar base de datos existente
         await DatabaseService().updateDatabase(
           id: widget.databaseId!,
           name: _nameController.text.trim(),
           products: products,
         );
+        print('DEBUG - Update completed successfully');
       } else {
+        print('DEBUG - CREATE mode');
         // CREATE: Crear nueva base de datos
         await DatabaseService().createDatabase(
           name: _nameController.text.trim(),
           products: products,
         );
+        print('DEBUG - Create completed successfully');
       }
 
       if (!mounted) return;
@@ -163,11 +177,13 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
       // Regresar indicando éxito
       Navigator.pop(context, {'published': true});
     } on ApiException catch (e) {
+      print('DEBUG - ApiException caught: ${e.message}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message), backgroundColor: Colors.red),
       );
     } catch (e) {
+      print('DEBUG - Generic exception caught: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -176,6 +192,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
         ),
       );
     } finally {
+      print('DEBUG - Finally block executed');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -421,7 +438,21 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
       ),
       child: Row(
         children: [
-          _buildEditableCell(row['id']!, flex: 1),
+          // Mostrar índice + 1 en lugar del ID editable
+          Expanded(
+            flex: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Container(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ),
+            ),
+          ),
           _buildEditableCell(row['name']!, flex: 3),
           _buildEditableCell(row['price']!, flex: 2, isNumeric: true),
           _buildEditableCell(row['unit']!, flex: 2),

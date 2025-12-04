@@ -3,7 +3,9 @@ import 'package:costealoo/routes/app_routes.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 
 class SidebarMenu extends StatelessWidget {
-  const SidebarMenu({super.key});
+  final VoidCallback? onSheetCreated;
+
+  const SidebarMenu({super.key, this.onSheetCreated});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,10 @@ class SidebarMenu extends StatelessWidget {
               _SidebarIconButton(
                 icon: Icons.add,
                 tooltip: 'Nueva planilla',
-                onTap: () => Navigator.pushNamed(context, AppRoutes.newSheet),
+                onTap: () async {
+                  await Navigator.pushNamed(context, AppRoutes.newSheet);
+                  onSheetCreated?.call();
+                },
               ),
               const SizedBox(height: 24),
               _SidebarIconButton(

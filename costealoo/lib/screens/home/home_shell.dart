@@ -48,7 +48,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: Row(
         children: [
-          const SidebarMenu(),
+          SidebarMenu(onSheetCreated: _loadSheets),
 
           // Contenido principal
           Expanded(
@@ -124,14 +124,43 @@ class _HomeShellState extends State<HomeShell> {
                                     ),
                                     const SizedBox(height: 12),
 
-                                    const Wrap(
-                                      spacing: 16,
-                                      runSpacing: 16,
-                                      children: [
-                                        SectionCard(title: 'Nombre planilla'),
-                                        SectionCard(title: 'Nombre planilla'),
-                                      ],
-                                    ),
+                                    () {
+                                      // Filter drafts (status == 0)
+                                      final drafts = _sheets
+                                          .where(
+                                            (sheet) =>
+                                                (sheet['status'] ?? 0) == 0,
+                                          )
+                                          .toList();
+
+                                      return drafts.isEmpty
+                                          ? const Text('No hay borradores')
+                                          : Wrap(
+                                              spacing: 16,
+                                              runSpacing: 16,
+                                              children: drafts.map((sheet) {
+                                                return GestureDetector(
+                                                  onTap: () async {
+                                                    await Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            NewSheetScreen(
+                                                              sheetData: sheet,
+                                                            ),
+                                                      ),
+                                                    );
+                                                    await _loadSheets();
+                                                  },
+                                                  child: SectionCard(
+                                                    title:
+                                                        sheet['name'] ??
+                                                        'Sin nombre',
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            );
+                                    }(),
 
                                     const SizedBox(height: 32),
 
@@ -141,35 +170,45 @@ class _HomeShellState extends State<HomeShell> {
                                     ),
                                     const SizedBox(height: 12),
 
-                                    if (_sheets.isEmpty)
-                                      const Text('No hay planillas publicadas')
-                                    else
-                                      Wrap(
-                                        spacing: 16,
-                                        runSpacing: 16,
-                                        children: _sheets.map((sheet) {
-                                          return GestureDetector(
-                                            onTap: () async {
-                                              await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      NewSheetScreen(
-                                                        sheetData: sheet,
-                                                        // Removed isReadOnly to allow editing
+                                    () {
+                                      // Filter published (status == 1)
+                                      final published = _sheets
+                                          .where(
+                                            (sheet) =>
+                                                (sheet['status'] ?? 0) == 1,
+                                          )
+                                          .toList();
+
+                                      return published.isEmpty
+                                          ? const Text(
+                                              'No hay planillas publicadas',
+                                            )
+                                          : Wrap(
+                                              spacing: 16,
+                                              runSpacing: 16,
+                                              children: published.map((sheet) {
+                                                return GestureDetector(
+                                                  onTap: () async {
+                                                    await Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            NewSheetScreen(
+                                                              sheetData: sheet,
+                                                            ),
                                                       ),
-                                                ),
-                                              );
-                                              // Reload sheets after returning
-                                              _loadSheets();
-                                            },
-                                            child: SectionCard(
-                                              title:
-                                                  sheet['name'] ?? 'Sin nombre',
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
+                                                    );
+                                                    await _loadSheets();
+                                                  },
+                                                  child: SectionCard(
+                                                    title:
+                                                        sheet['name'] ??
+                                                        'Sin nombre',
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            );
+                                    }(),
                                     const SizedBox(height: 40),
                                   ],
                                 ),

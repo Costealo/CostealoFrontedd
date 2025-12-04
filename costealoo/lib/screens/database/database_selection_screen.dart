@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:costealoo/theme/costealo_theme.dart';
 import 'package:costealoo/widgets/sidebar_menu.dart';
 import 'package:costealoo/widgets/section_card.dart';
-import 'package:costealoo/screens/database/database_view_screen.dart';
 import 'package:costealoo/services/auth_service.dart';
 import 'package:costealoo/screens/database/database_screen.dart';
 import 'package:costealoo/services/database_service.dart';
 import 'package:costealoo/services/api_client.dart';
-import 'package:costealoo/screens/sheets/new_sheet_screen.dart';
 import 'package:costealoo/utils/excel_import_helper.dart';
 
 class DatabaseSelectionScreen extends StatefulWidget {
@@ -63,9 +61,6 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
     }
   }
 
-  // Lista de borradores
-  List<String> draftDatabases = ['Nombre de base de datos'];
-
   void _refreshDatabases() {
     _loadDatabases();
   }
@@ -87,41 +82,30 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
       ),
     );
 
-    // Si se publicó una base de datos, actualizar lista
-    if (result != null && result is Map && result['published'] == true) {
+    // Si se publicó o guardó una base de datos, actualizar lista
+    if (result != null && result is Map && result['saved'] == true) {
       _loadDatabases();
     }
   }
 
   Future<void> _openDatabase(Map<String, dynamic> database) async {
-    // Navegar a la pantalla de visualización
+    // Navegar a la pantalla de edición
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DatabaseViewScreen(
-          databaseId: database['id']?.toString() ?? '',
-          databaseName: database['name'] as String,
-          products: (database['products'] as List).cast<Map<String, dynamic>>(),
-        ),
-      ),
-    );
-
-    // Si se renombró, actualizar lista
-    if (result != null && result is Map && result['newName'] != null) {
-      _loadDatabases();
-    }
-  }
-
-  void _createSheetFromDatabase(Map<String, dynamic> database) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NewSheetScreen(
+        builder: (context) => DatabaseScreen(
+          initialName: database['name'] as String,
+          databaseId: database['id'] as String?, // Pass ID for editing
           preLoadedProducts: (database['products'] as List?)
               ?.cast<Map<String, dynamic>>(),
         ),
       ),
     );
+
+    // Si se publicó o actualizó o guardó, recargar lista
+    if (result != null && result is Map && result['saved'] == true) {
+      _loadDatabases();
+    }
   }
 
   Future<void> _importFromExcel() async {
@@ -146,9 +130,7 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
         ),
       );
 
-      if (dbResult != null &&
-          dbResult is Map &&
-          dbResult['published'] == true) {
+      if (dbResult != null && dbResult is Map && dbResult['saved'] == true) {
         _loadDatabases();
       }
 
@@ -240,31 +222,33 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                                   ),
                                   const SizedBox(height: 12),
 
-                                  draftDatabases.isEmpty
-                                      ? Text(
-                                          'No hay borradores',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                          ),
-                                        )
-                                      : Wrap(
-                                          spacing: 16,
-                                          runSpacing: 16,
-                                          children: draftDatabases
-                                              .map(
-                                                (name) => SectionCard(
-                                                  title: name,
-                                                  onTap: () => _openDatabase({
-                                                    'name': name,
-                                                    'products':
-                                                        <
-                                                          Map<String, dynamic>
-                                                        >[],
-                                                  }),
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
+                                  () {
+                                    // Filter drafts (status == 0)
+                                    final drafts = savedDatabases
+                                        .where((db) => (db['status'] ?? 0) == 0)
+                                        .toList();
+
+                                    return drafts.isEmpty
+                                        ? Text(
+                                            'No hay borradores',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
+                                          )
+                                        : Wrap(
+                                            spacing: 16,
+                                            runSpacing: 16,
+                                            children: drafts
+                                                .map(
+                                                  (db) => SectionCard(
+                                                    title: db['name'] as String,
+                                                    onTap: () =>
+                                                        _openDatabase(db),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          );
+                                  }(),
 
                                   const SizedBox(height: 32),
 
@@ -275,30 +259,33 @@ class _DatabaseSelectionScreenState extends State<DatabaseSelectionScreen> {
                                   ),
                                   const SizedBox(height: 12),
 
-                                  savedDatabases.isEmpty
-                                      ? Text(
-                                          'No hay bases de datos guardadas',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                          ),
-                                        )
-                                      : Wrap(
-                                          spacing: 16,
-                                          runSpacing: 16,
-                                          children: savedDatabases
-                                              .map(
-                                                (db) => SectionCard(
-                                                  title: db['name'] as String,
-                                                  onTap: () =>
-                                                      _createSheetFromDatabase(
-                                                        db,
-                                                      ),
-                                                  onEdit: () =>
-                                                      _openDatabase(db),
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
+                                  () {
+                                    // Filter published (status == 1)
+                                    final published = savedDatabases
+                                        .where((db) => (db['status'] ?? 0) == 1)
+                                        .toList();
+
+                                    return published.isEmpty
+                                        ? Text(
+                                            'No hay bases de datos guardadas',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
+                                          )
+                                        : Wrap(
+                                            spacing: 16,
+                                            runSpacing: 16,
+                                            children: published
+                                                .map(
+                                                  (db) => SectionCard(
+                                                    title: db['name'] as String,
+                                                    onTap: () =>
+                                                        _openDatabase(db),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          );
+                                  }(),
                                   const SizedBox(height: 40),
                                 ],
                               ),

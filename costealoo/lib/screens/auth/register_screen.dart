@@ -124,13 +124,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         subscription: _subscription,
         paymentType: _paymentType,
         last4Digits: _last4Ctrl.text,
+        cardHolderName: _nameCtrl.text
+            .trim(), // Use user's name as cardholder name
+        expirationDate: _expiryCtrl.text,
+        securityCode: _cvvCtrl.text,
       );
 
       // Auto-login inmediato
       await _authService.login(
         correo: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
-        organizacion: _organization,
       );
 
       // Actualizar nombre localmente
@@ -227,27 +230,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderRadius: BorderRadius.circular(24),
             ),
             elevation: 10,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Crear cuenta', style: textTheme.headlineMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    _step == 0
-                        ? 'Paso 1 de 2 · Regístrate'
-                        : 'Paso 2 de 2 · Método de pago',
-                    style: textTheme.bodyMedium!.copyWith(
-                      color: Colors.grey[700],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 32,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Crear cuenta', style: textTheme.headlineMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      _step == 0
+                          ? 'Paso 1 de 2 · Regístrate'
+                          : 'Paso 2 de 2 · Método de pago',
+                      style: textTheme.bodyMedium!.copyWith(
+                        color: Colors.grey[700],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_step == 0)
-                    _buildStep1(textTheme)
-                  else
-                    _buildStep2(textTheme),
-                ],
+                    const SizedBox(height: 24),
+                    if (_step == 0)
+                      _buildStep1(textTheme)
+                    else
+                      _buildStep2(textTheme),
+                  ],
+                ),
               ),
             ),
           ),

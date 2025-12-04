@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "costealoo (Chrome - No CORS)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--web-browser-flag",
+                "--disable-web-security"
+            ]
+        },
+        {
+            "name": "costealoo (Mobile)",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

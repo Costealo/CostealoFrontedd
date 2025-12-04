@@ -266,6 +266,71 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     setState(() => _isPublishing = true);
 
     try {
+      // 1. Auto-create manual items
+      final dbService = DatabaseService();
+
+      // Process Ingredients
+      for (int i = 0; i < _ingredientNames.length; i++) {
+        if (_ingredientNames[i].text.isNotEmpty && _ingredientIds[i] == null) {
+          final name = _ingredientNames[i].text;
+          print('DEBUG - Processing manual ingredient: $name');
+
+          // A. Search existing
+          final existing = await dbService.findItemByName(name);
+          if (existing != null) {
+            print('DEBUG - Found existing item: $existing');
+            _ingredientIds[i] = existing['priceItemId'];
+            _ingredientUnits[i] = existing['unit'];
+          } else {
+            // B. Create new
+            print('DEBUG - Creating new item for: $name');
+            final defaultDbId = await dbService.getOrCreateDefaultDatabase();
+            final newItem = await dbService.createPriceItem(defaultDbId, {
+              'name': name,
+              'price':
+                  double.tryParse(
+                    _ingredientQuantities[i].text.replaceAll(',', '.'),
+                  ) ??
+                  0.0,
+              'unit': _ingredientUnits[i],
+            });
+            _ingredientIds[i] = newItem['id'];
+            print('DEBUG - Created new item with ID: ${newItem['id']}');
+          }
+        }
+      }
+
+      // Process Extras
+      for (int i = 0; i < _extraNames.length; i++) {
+        if (_extraNames[i].text.isNotEmpty && _extraIds[i] == null) {
+          final name = _extraNames[i].text;
+          print('DEBUG - Processing manual extra: $name');
+
+          // A. Search existing
+          final existing = await dbService.findItemByName(name);
+          if (existing != null) {
+            print('DEBUG - Found existing extra: $existing');
+            _extraIds[i] = existing['priceItemId'];
+            _extraUnits[i] = existing['unit'];
+          } else {
+            // B. Create new
+            print('DEBUG - Creating new extra for: $name');
+            final defaultDbId = await dbService.getOrCreateDefaultDatabase();
+            final newItem = await dbService.createPriceItem(defaultDbId, {
+              'name': name,
+              'price':
+                  double.tryParse(
+                    _extraQuantities[i].text.replaceAll(',', '.'),
+                  ) ??
+                  0.0,
+              'unit': _extraUnits[i],
+            });
+            _extraIds[i] = newItem['id'];
+            print('DEBUG - Created new extra with ID: ${newItem['id']}');
+          }
+        }
+      }
+
       // Recopilar datos
       final ingredients = <Map<String, dynamic>>[];
       print(

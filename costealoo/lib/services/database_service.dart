@@ -134,6 +134,7 @@ class DatabaseService {
         'products':
             (db['items'] as List<dynamic>?)?.map((item) {
               return {
+                'id': item['id'], // Include ID for linking
                 'name': item['product'],
                 'price': item['price'],
                 'unit': item['unit'],
@@ -170,5 +171,75 @@ class DatabaseService {
       return 0; // 'Draft' or others
     }
     return 0;
+  }
+
+  /// Find an item by name across all databases
+  Future<Map<String, dynamic>?> findItemByName(String name) async {
+    try {
+      final databases = await getDatabases();
+      for (var db in databases) {
+        final products = (db['products'] as List<dynamic>?) ?? [];
+        for (var prod in products) {
+          if (prod['name'].toString().toLowerCase() == name.toLowerCase()) {
+            return {
+              'priceItemId': prod['id'],
+              'name': prod['name'],
+              'unit': prod['unit'],
+              'price': prod['price'],
+              'databaseId': db['id'],
+            };
+          }
+        }
+      }
+    } catch (e) {
+      print('Error searching item: $e');
+    }
+    return null;
+  }
+
+  /// Get or create a default database for manual items
+  Future<String> getOrCreateDefaultDatabase() async {
+    try {
+      final databases = await getDatabases();
+      // Look for "General" or "Manual" database
+      final defaultDb = databases.firstWhere(
+        (db) =>
+            db['name'].toString().toLowerCase() == 'general' ||
+            db['name'].toString().toLowerCase() == 'manual',
+        orElse: () => {},
+      );
+
+      if (defaultDb.isNotEmpty) {
+        return defaultDb['id'];
+      }
+
+      // Create if not exists
+      final newDb = await createDatabase(
+        name: 'General',
+        products: [], // Empty list of products
+        status: 0, // Draft
+      );
+      return newDb['id'].toString();
+    } catch (e) {
+      print('Error getting default DB: $e');
+      rethrow;
+    }
+  }
+
+  /// Create a price item in a specific database
+  Future<Map<String, dynamic>> createPriceItem(
+    String databaseId,
+    Map<String, dynamic> itemData,
+  ) async {
+    final response = await _authService.apiClient.post(
+      '/PriceDatabase/$databaseId/items',
+      body: {
+        'Product': itemData['name'],
+        'Price': itemData['price'],
+        'Unit': itemData['unit'],
+      },
+      includeAuth: true,
+    );
+    return response;
   }
 }

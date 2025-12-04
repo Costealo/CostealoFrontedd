@@ -24,6 +24,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
   // Lista de productos editables
   List<Map<String, TextEditingController>> productRows = [];
   bool _isLoading = false;
+  bool _isEditMode = false; // Controls whether fields are editable
 
   // ← NUEVO: Controller para nombre editable
   late TextEditingController _nameController;
@@ -37,9 +38,12 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     _nameController = TextEditingController(text: widget.initialName);
 
     // Si hay productos pre-cargados, cargarlos
+    print('DEBUG - preLoadedProducts: ${widget.preLoadedProducts}');
     if (widget.preLoadedProducts != null &&
         widget.preLoadedProducts!.isNotEmpty) {
+      print('DEBUG - Loading ${widget.preLoadedProducts!.length} products');
       for (var product in widget.preLoadedProducts!) {
+        print('DEBUG - Product: $product');
         productRows.add({
           'id': TextEditingController(text: product['id']?.toString() ?? ''),
           'name': TextEditingController(
@@ -54,6 +58,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
         });
       }
     } else {
+      print('DEBUG - No preloaded products, creating 10 empty rows');
       // Iniciar con 10 filas vacías
       for (int i = 0; i < 10; i++) {
         _addNewRow();
@@ -94,8 +99,9 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     });
   }
 
-  Future<void> _publish() async {
-    print('DEBUG - _publish called');
+  Future<void> _saveDatabase(int status) async {
+    final statusLabel = status == 0 ? 'borrador' : 'publicada';
+    print('DEBUG - _saveDatabase called with status: $status');
 
     // Validar nombre
     if (_nameController.text.trim().isEmpty) {
@@ -129,11 +135,12 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     print('DEBUG - Products collected: ${products.length} items');
     print('DEBUG - Products: $products');
 
-    if (products.isEmpty) {
-      print('DEBUG - Validation failed: no products');
+    // Allow saving draft with no products, but require at least one for publishing
+    if (status == 1 && products.isEmpty) {
+      print('DEBUG - Validation failed: no products for publishing');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Agrega al menos un producto'),
+          content: Text('Agrega al menos un producto para publicar'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -152,14 +159,23 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
           id: widget.databaseId!,
           name: _nameController.text.trim(),
           products: products,
+          status: status,
         );
         print('DEBUG - Update completed successfully');
+
+        // Si estamos publicando (status == 1), llamar al endpoint /publish
+        if (status == 1) {
+          print('DEBUG - Publishing draft database');
+          await DatabaseService().publishDatabase(widget.databaseId!);
+          print('DEBUG - Publish endpoint called successfully');
+        }
       } else {
-        print('DEBUG - CREATE mode');
+        print('DEBUG - CREATE mode with status: $status');
         // CREATE: Crear nueva base de datos
         await DatabaseService().createDatabase(
           name: _nameController.text.trim(),
           products: products,
+          status: status,
         );
         print('DEBUG - Create completed successfully');
       }
@@ -168,14 +184,16 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
 
       // Mostrar mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Base de datos publicada exitosamente'),
+        SnackBar(
+          content: Text(
+            'Base de datos guardada como $statusLabel exitosamente',
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
       // Regresar indicando éxito
-      Navigator.pop(context, {'published': true});
+      Navigator.pop(context, {'published': status == 1, 'saved': true});
     } on ApiException catch (e) {
       print('DEBUG - ApiException caught: ${e.message}');
       if (!mounted) return;
@@ -199,6 +217,16 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     }
   }
 
+  // Guardar como borrador (status: 0)
+  Future<void> _saveDraft() async {
+    await _saveDatabase(0);
+  }
+
+  // Publicar (status: 1)
+  Future<void> _publish() async {
+    await _saveDatabase(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -219,15 +247,52 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.databaseId != null
-                            ? 'Editar Base de Datos'
-                            : 'Nueva Base de Datos',
-                        style: textTheme.headlineSmall,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            widget.databaseId != null
+                                ? 'Editar Base de Datos'
+                                : 'Nueva Base de Datos',
+                            style: textTheme.headlineSmall,
+                          ),
+                          if (widget.databaseId != null)
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _isEditMode = !_isEditMode;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      _isEditMode
+                                          ? 'Modo edición activado'
+                                          : 'Modo edición desactivado',
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              icon: Icon(
+                                _isEditMode ? Icons.lock_open : Icons.edit,
+                                size: 18,
+                              ),
+                              label: Text(_isEditMode ? 'Bloquear' : 'Editar'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CostealoColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _nameController,
+                        readOnly: widget.databaseId != null && !_isEditMode,
                         style: textTheme.titleLarge,
                         decoration: InputDecoration(
                           labelText: 'Nombre de la base de datos',
@@ -304,51 +369,52 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                                   ),
                                 ),
 
-                                // Botón flotante "Aumentar filas"
-                                Positioned(
-                                  right: 8,
-                                  bottom: 16,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      FloatingActionButton.small(
-                                        backgroundColor: CostealoColors.primary,
-                                        onPressed: _addNewRow,
-                                        tooltip: 'Añadir 1 fila',
-                                        child: const Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          foregroundColor:
-                                              CostealoColors.primaryDark,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            side: const BorderSide(
-                                              color: CostealoColors.primary,
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
+                                // Botón flotante "Aumentar filas" - solo en modo edición
+                                if (widget.databaseId == null || _isEditMode)
+                                  Positioned(
+                                    right: 8,
+                                    bottom: 16,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        FloatingActionButton.small(
+                                          backgroundColor:
+                                              CostealoColors.primary,
+                                          onPressed: _addNewRow,
+                                          tooltip: 'Añadir 1 fila',
+                                          child: const Icon(
+                                            Icons.add,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                        onPressed: _addMultipleRows,
-                                        child: const Text(
-                                          'Aumentar\nfilas',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(fontSize: 11),
+                                        const SizedBox(height: 8),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor:
+                                                CostealoColors.primaryDark,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              side: const BorderSide(
+                                                color: CostealoColors.primary,
+                                              ),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                          ),
+                                          onPressed: _addMultipleRows,
+                                          child: const Text(
+                                            'Aumentar\nfilas',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(fontSize: 11),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -363,49 +429,158 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Botón Regresar
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: CostealoColors.cardSoft,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
+                      Row(
+                        children: [
+                          // Botón Eliminar (solo si está editando)
+                          if (widget.databaseId != null)
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CostealoColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 28,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Eliminar base de datos'),
+                                    content: const Text(
+                                      '¿Estás seguro de que quieres eliminar esta base de datos? Esta acción no se puede deshacer.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                        ),
+                                        child: const Text('Eliminar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmed == true) {
+                                  try {
+                                    await DatabaseService().deleteDatabase(
+                                      widget.databaseId!,
+                                    );
+                                    if (mounted) {
+                                      Navigator.pop(context, {'deleted': true});
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error al eliminar: $e',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Eliminar'),
+                            ),
+                          if (widget.databaseId != null)
+                            const SizedBox(width: 12),
+                          // Botón Regresar
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: CostealoColors.cardSoft,
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Regresar'),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Regresar'),
+                        ],
                       ),
 
-                      // Botón Publicar
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: CostealoColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
+                      // Botones de acción
+                      Row(
+                        children: [
+                          // Botón Guardar borrador
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: CostealoColors.primary,
+                              side: const BorderSide(
+                                color: CostealoColors.primary,
+                                width: 1.5,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _isLoading ? null : _saveDraft,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: CostealoColors.primary,
+                                    ),
+                                  )
+                                : const Text('Guardar borrador'),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+
+                          const SizedBox(width: 12),
+
+                          // Botón Publicar
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: CostealoColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _isLoading ? null : _publish,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Publicar'),
                           ),
-                        ),
-                        onPressed: _isLoading ? null : _publish,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Publicar'),
+                        ],
                       ),
                     ],
                   ),
@@ -453,9 +628,22 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
               ),
             ),
           ),
-          _buildEditableCell(row['name']!, flex: 3),
-          _buildEditableCell(row['price']!, flex: 2, isNumeric: true),
-          _buildEditableCell(row['unit']!, flex: 2),
+          _buildEditableCell(
+            row['name']!,
+            flex: 3,
+            readOnly: widget.databaseId != null && !_isEditMode,
+          ),
+          _buildEditableCell(
+            row['price']!,
+            flex: 2,
+            isNumeric: true,
+            readOnly: widget.databaseId != null && !_isEditMode,
+          ),
+          _buildEditableCell(
+            row['unit']!,
+            flex: 2,
+            readOnly: widget.databaseId != null && !_isEditMode,
+          ),
 
           // Botón para eliminar fila
           SizedBox(
@@ -484,6 +672,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
     TextEditingController controller, {
     int flex = 1,
     bool isNumeric = false,
+    bool readOnly = false,
   }) {
     return Expanded(
       flex: flex,
@@ -491,6 +680,7 @@ class _DatabaseScreenState extends State<DatabaseScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: TextField(
           controller: controller,
+          readOnly: readOnly,
           keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(

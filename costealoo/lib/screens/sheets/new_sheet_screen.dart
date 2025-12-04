@@ -31,12 +31,14 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   final List<TextEditingController> _ingredientQuantities = [];
   final List<TextEditingController> _ingredientAmounts = [];
   final List<int?> _ingredientIds = []; // Track IDs
+  final List<String> _ingredientUnits = []; // Track units from database
 
   // Costos adicionales
   final List<TextEditingController> _extraNames = [];
   final List<TextEditingController> _extraQuantities = [];
   final List<TextEditingController> _extraAmounts = [];
   final List<int?> _extraIds = []; // Track IDs
+  final List<String> _extraUnits = []; // Track units from database
 
   // Totales y datos generales (por ahora solo UI)
   final TextEditingController _totalController = TextEditingController(
@@ -83,6 +85,8 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
   );
 
   String _currency = 'Bs';
+  bool _isEditMode =
+      false; // Controls whether fields are editable when viewing existing sheet
   bool _isPublishing = false;
 
   @override
@@ -126,6 +130,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _ingredientQuantities.add(qtyCtrl);
       _ingredientAmounts.add(amountCtrl);
       _ingredientIds.add(ing['priceItemId']); // Load ID
+      _ingredientUnits.add(ing['unit'] ?? 'unid'); // Load unit
     }
 
     // Cargar extras
@@ -144,6 +149,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _extraQuantities.add(qtyCtrl);
       _extraAmounts.add(amountCtrl);
       _extraIds.add(ext['priceItemId']); // Load ID
+      _extraUnits.add(ext['unit'] ?? 'unid'); // Load unit
     }
 
     // Si no hay filas, añadir al menos una vacía (solo si no es readOnly)
@@ -245,7 +251,9 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     }
   }
 
-  Future<void> _publishSheet() async {
+  Future<void> _saveSheet(int status) async {
+    final statusLabel = status == 0 ? 'borrador' : 'publicada';
+
     if (_sheetNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -260,7 +268,13 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     try {
       // Recopilar datos
       final ingredients = <Map<String, dynamic>>[];
+      print(
+        'DEBUG - Building ingredients, total count: ${_ingredientNames.length}',
+      );
       for (int i = 0; i < _ingredientNames.length; i++) {
+        print(
+          'DEBUG - Ingredient $i: name="${_ingredientNames[i].text}", priceItemId=${_ingredientIds[i]}',
+        );
         if (_ingredientNames[i].text.isNotEmpty) {
           ingredients.add({
             'name': _ingredientNames[i].text,
@@ -275,7 +289,9 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                 ) ??
                 0.0,
             'priceItemId': _ingredientIds[i], // Include ID
+            'unit': _ingredientUnits[i], // Include unit from database
           });
+          print('DEBUG - Added ingredient: ${ingredients.last}');
         }
       }
 
@@ -293,6 +309,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                 ) ??
                 0.0,
             'priceItemId': _extraIds[i], // Include ID
+            'unit': _extraUnits[i], // Include unit from database
           });
         }
       }
@@ -322,82 +339,75 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
             double.tryParse(_unitCostController.text.replaceAll(',', '.')) ??
             0.0,
         'margin': _marginController.text,
+        'status': status, // Include status
       };
 
-      await SheetService().createSheet(sheetData);
+      print('DEBUG - _saveSheet called with status: $status'); // Debug log
+      print('DEBUG - sheetData status: ${sheetData['status']}'); // Debug log
+
+      // NOTE: Backend supports both items with priceItemId (from database)
+      // and items without priceItemId (manually entered). No validation needed.
+
+      // Check if editing or creating
+      if (widget.sheetData != null && widget.sheetData!['id'] != null) {
+        // EDITING: Update existing sheet
+        print(
+          'DEBUG - EDITING mode, ID: ${widget.sheetData!['id']}',
+        ); // Debug log
+
+        // Always update the sheet name and items
+        await SheetService().updateSheet(
+          widget.sheetData!['id'],
+          {'name': _sheetNameController.text},
+          ingredients: sheetData['ingredients'] as List<dynamic>?,
+          extras: sheetData['extras'] as List<dynamic>?,
+        );
+
+        // If publishing (status == 1), call the publish endpoint
+        if (status == 1) {
+          print(
+            'DEBUG - Publishing workbook via /publish endpoint',
+          ); // Debug log
+          await SheetService().publishWorkbook(widget.sheetData!['id']);
+        } else {
+          // If saving as draft, update status to 0
+          print('DEBUG - Saving as draft, updating status to 0'); // Debug log
+          await SheetService().updateSheet(widget.sheetData!['id'], {
+            'name': _sheetNameController.text,
+            'status': 0,
+          });
+        }
+      } else {
+        // CREATING: Create new sheet with status
+        print('DEBUG - CREATING mode'); // Debug log
+        await SheetService().createSheet(sheetData);
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Planilla publicada con éxito')),
+        SnackBar(
+          content: Text('Planilla guardada como $statusLabel con éxito'),
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al publicar: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
       }
     } finally {
       if (mounted) setState(() => _isPublishing = false);
     }
   }
 
-  Future<void> _editSheetName() async {
-    if (widget.sheetData == null || widget.sheetData!['id'] == null) return;
+  Future<void> _saveDraft() async {
+    await _saveSheet(0);
+  }
 
-    final nameController = TextEditingController(
-      text: _sheetNameController.text,
-    );
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar nombre'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de la planilla',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.trim().isEmpty) return;
-
-              try {
-                await SheetService().updateSheet(widget.sheetData!['id'], {
-                  'name': nameController.text.trim(),
-                });
-
-                if (context.mounted) {
-                  setState(() {
-                    _sheetNameController.text = nameController.text.trim();
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nombre actualizado')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error al actualizar: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _publishSheet() async {
+    await _saveSheet(1);
   }
 
   @override
@@ -451,6 +461,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _ingredientQuantities.add(qtyCtrl);
       _ingredientAmounts.add(amountCtrl);
       _ingredientIds.add(null); // Init with null
+      _ingredientUnits.add('unid'); // Init with default unit
     });
   }
 
@@ -465,6 +476,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
       _extraQuantities.add(qtyCtrl);
       _extraAmounts.add(amountCtrl);
       _extraIds.add(null); // Init with null
+      _extraUnits.add('unid'); // Init with default unit
     });
   }
 
@@ -501,16 +513,43 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                widget.isReadOnly
-                                    ? 'Detalle de planilla'
+                                widget.sheetData != null
+                                    ? 'Editar Planilla'
                                     : 'Nueva planilla',
                                 style: textTheme.headlineMedium,
                               ),
-                              if (widget.isReadOnly)
-                                TextButton.icon(
-                                  onPressed: _editSheetName,
-                                  icon: const Icon(Icons.edit),
-                                  label: const Text('Editar nombre'),
+                              if (widget.sheetData != null)
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isEditMode = !_isEditMode;
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          _isEditMode
+                                              ? 'Modo edición activado'
+                                              : 'Modo edición desactivado',
+                                        ),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(
+                                    _isEditMode ? Icons.lock_open : Icons.edit,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    _isEditMode ? 'Bloquear' : 'Editar',
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: CostealoColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
@@ -519,7 +558,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                           // Nombre de la planilla
                           TextField(
                             controller: _sheetNameController,
-                            readOnly: widget.isReadOnly,
+                            readOnly: widget.sheetData != null && !_isEditMode,
                             decoration: const InputDecoration(
                               labelText: 'Nombre de la planilla',
                               border: OutlineInputBorder(),
@@ -643,39 +682,126 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                                   if (!widget.isReadOnly)
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        OutlinedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('Cancelar'),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                CostealoColors.primary,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          onPressed: _isPublishing
-                                              ? null
-                                              : _publishSheet,
-                                          child: _isPublishing
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                        strokeWidth: 2,
+                                        // Delete button (only when editing)
+                                        if (widget.sheetData != null)
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  CostealoColors.primary,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () async {
+                                              final confirmed = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: const Text(
+                                                    'Eliminar planilla',
+                                                  ),
+                                                  content: const Text(
+                                                    '¿Estás seguro de que quieres eliminar esta planilla? Esta acción no se puede deshacer.',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                      child: const Text(
+                                                        'Cancelar',
                                                       ),
-                                                )
-                                              : const Text('Publicar'),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        OutlinedButton(
-                                          onPressed: () {},
-                                          child: const Text('Guardar borrador'),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style:
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                      child: const Text(
+                                                        'Eliminar',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+
+                                              if (confirmed == true) {
+                                                try {
+                                                  await SheetService()
+                                                      .deleteSheet(
+                                                        widget.sheetData!['id'],
+                                                      );
+                                                  if (context.mounted) {
+                                                    Navigator.pop(context, {
+                                                      'deleted': true,
+                                                    });
+                                                  }
+                                                } catch (e) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Error al eliminar: $e',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            icon: const Icon(Icons.delete),
+                                            label: const Text('Eliminar'),
+                                          )
+                                        else
+                                          const SizedBox.shrink(),
+                                        Row(
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    CostealoColors.primary,
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              onPressed: _isPublishing
+                                                  ? null
+                                                  : _publishSheet,
+                                              child: _isPublishing
+                                                  ? const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            color: Colors.white,
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : const Text('Publicar'),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            OutlinedButton(
+                                              onPressed: _isPublishing
+                                                  ? null
+                                                  : _saveDraft,
+                                              child: const Text(
+                                                'Guardar borrador',
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -713,10 +839,10 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 3,
                   child: TextField(
                     controller: _ingredientNames[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     decoration: InputDecoration(
                       hintText: 'Ingrediente ${i + 1}',
-                      suffixIcon: widget.isReadOnly
+                      suffixIcon: (widget.sheetData != null && !_isEditMode)
                           ? null
                           : IconButton(
                               icon: const Icon(Icons.search),
@@ -737,7 +863,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 1,
                   child: TextField(
                     controller: _ingredientAmounts[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -751,7 +877,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 1,
                   child: TextField(
                     controller: _ingredientQuantities[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -762,7 +888,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
               ],
             ),
           ),
-        if (!widget.isReadOnly)
+        if (widget.sheetData == null || _isEditMode)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -789,10 +915,10 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 3,
                   child: TextField(
                     controller: _extraNames[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     decoration: InputDecoration(
                       hintText: 'Costo ${i + 1}',
-                      suffixIcon: widget.isReadOnly
+                      suffixIcon: (widget.sheetData != null && !_isEditMode)
                           ? null
                           : IconButton(
                               icon: const Icon(Icons.search),
@@ -812,7 +938,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 1,
                   child: TextField(
                     controller: _extraAmounts[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -825,7 +951,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
                   flex: 1,
                   child: TextField(
                     controller: _extraQuantities[i],
-                    readOnly: widget.isReadOnly,
+                    readOnly: widget.sheetData != null && !_isEditMode,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -836,7 +962,7 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
               ],
             ),
           ),
-        if (!widget.isReadOnly)
+        if (widget.sheetData == null || _isEditMode)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -1033,15 +1159,25 @@ class _NewSheetScreenState extends State<NewSheetScreen> {
     List<TextEditingController> nameControllers,
     List<TextEditingController> qtyControllers,
   ) {
+    print('DEBUG - _selectProduct called with prod: $prod, index: $index');
+
     nameControllers[index].text = prod['name'] ?? '';
     if (prod['price'] != null) {
       qtyControllers[index].text = prod['price'].toString();
-      // Store ID if available
+
+      // Store ID and unit if available
       if (nameControllers == _ingredientNames) {
         _ingredientIds[index] = prod['id'];
+        _ingredientUnits[index] = prod['unit'] ?? 'unid';
+        print(
+          'DEBUG - Stored ingredient ID: ${prod['id']}, unit: ${prod['unit']}',
+        );
       } else if (nameControllers == _extraNames) {
         _extraIds[index] = prod['id'];
+        _extraUnits[index] = prod['unit'] ?? 'unid';
+        print('DEBUG - Stored extra ID: ${prod['id']}, unit: ${prod['unit']}');
       }
+
       // Disparar recálculo
       _calculateValues();
     }

@@ -124,13 +124,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         subscription: _subscription,
         paymentType: _paymentType,
         last4Digits: _last4Ctrl.text,
+        cardHolderName: _nameCtrl.text
+            .trim(), // Use user's name as cardholder name
+        expirationDate: _expiryCtrl.text,
+        securityCode: _cvvCtrl.text,
       );
 
       // Auto-login inmediato
       await _authService.login(
         correo: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
-        organizacion: _organization,
       );
 
       // Actualizar nombre localmente

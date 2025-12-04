@@ -17,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  String _organization = 'Empresa';
 
   @override
   void dispose() {
@@ -36,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.login(
         correo: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
-        organizacion: _organization,
       );
 
       // Login successful, navigate to home
@@ -130,27 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           return 'Mínimo 6 caracteres';
                         }
                         return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Organización', style: textTheme.bodyMedium),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: _organization,
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Empresa',
-                          child: Text('Empresa'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Independiente',
-                          child: Text('Independiente'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _organization = value);
-                        }
                       },
                     ),
                     const SizedBox(height: 24),

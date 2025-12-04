@@ -21,11 +21,7 @@ class AuthService {
   /// Login with email and password
   /// Returns the authenticated User on success
   /// Throws ApiException on failure
-  Future<User> login({
-    required String correo,
-    required String password,
-    String? organizacion,
-  }) async {
+  Future<User> login({required String correo, required String password}) async {
     try {
       // Call the API login endpoint
       final response = await _apiClient.post(
@@ -80,14 +76,26 @@ class AuthService {
         print('Error decoding token: $e');
       }
 
-      // Create user with real ID
+      // Create user with real ID (organization will be fetched from profile)
       _currentUser = User(
         id: userId,
-        nombre: userName.isNotEmpty ? userName : (organizacion ?? 'Usuario'),
+        nombre: userName.isNotEmpty ? userName : 'Usuario',
         correo: correo,
-        organizacion: organizacion ?? 'Empresa',
+        organizacion: 'Empresa', // Default, will be updated from profile
         token: token,
       );
+
+      // Fetch organization from profile
+      try {
+        final profile = await getProfile();
+        if (profile != null && profile['organization'] != null) {
+          _currentUser = _currentUser!.copyWith(
+            organizacion: profile['organization'].toString(),
+          );
+        }
+      } catch (e) {
+        print('Error fetching organization from profile: $e');
+      }
 
       return _currentUser!;
     } catch (e) {
@@ -118,49 +126,63 @@ class AuthService {
     String? subscription,
     String? paymentType,
     String? last4Digits,
+    String? cardHolderName,
+    String? expirationDate,
+    String? securityCode,
   }) async {
     try {
       // Step 1: Create User
+      // Convert organization to role number: 0 = Empresa, 1 = Independiente
+      final role = organizacion == 'Independiente' ? 1 : 0;
+
       await _apiClient.post(
         '/Users',
         body: {
           'name': nombre,
           'email': correo,
           'password': password,
-          'role': 1, // Default to User role
+          'role': role,
         },
       );
 
       // Step 2: Login to get token
-      await login(
-        correo: correo,
-        password: password,
-        organizacion: organizacion,
-      );
+      await login(correo: correo, password: password);
 
-      // Step 3: Create Subscription
+      // Step 3: Update Subscription (backend creates one automatically)
       // Map subscription name to enum/int if needed.
-      // Assuming 'Básico' -> 0, 'Estándar' -> 1, 'Premium' -> 2
-      int planType = 0;
-      if (subscription == 'Estándar') planType = 1;
-      if (subscription == 'Premium') planType = 2;
+      // 0 = Free, 1 = Básico, 2 = Estándar, 3 = Premium
+      int planType = 1; // Default to Básico
+      if (subscription == 'Free' || subscription == 'Gratis') planType = 0;
+      if (subscription == 'Básico') planType = 1;
+      if (subscription == 'Estándar') planType = 2;
+      if (subscription == 'Premium') planType = 3;
 
       try {
-        await _apiClient.post(
-          '/Subscriptions',
-          body: {
-            'planType': planType,
-            'cardLastFourDigits': last4Digits,
-            'paymentMethodType': paymentType,
-            // Add other fields if required by backend
-            'isActive': true,
-          },
-          includeAuth: true,
-        );
+        // First, get the subscription ID created by the backend
+        final sub = await getSubscription();
+        if (sub == null) {
+          print('Warning: No subscription found for user after registration');
+        } else {
+          final subId = sub['id'];
+          // Update the subscription with payment details
+          await _apiClient.put(
+            '/Subscriptions/$subId',
+            body: {
+              'planType': planType,
+              'cardLastFourDigits': last4Digits,
+              'cardHolderName': cardHolderName,
+              'paymentMethodType': paymentType,
+              'expirationDate': expirationDate,
+              'securityCode': securityCode,
+              'isActive': true,
+            },
+            includeAuth: true,
+          );
+        }
       } catch (e) {
-        // If subscription fails, we still return the user but maybe log the error
-        // or show a warning. The user is created and logged in.
-        print('Error creating subscription: $e');
+        // If subscription update fails, we still return the user but log the error
+        // The user is created and logged in with default subscription.
+        print('Error updating subscription: $e');
       }
 
       // Update local user name since login might not have it
@@ -193,6 +215,28 @@ class AuthService {
     await _apiClient.put('/Users/$id', body: data, includeAuth: true);
     // Update local state
     updateCurrentUser(nombre: data['name'], organizacion: data['organization']);
+  }
+
+  /// Delete user account
+  Future<void> deleteUser(int id) async {
+    await _apiClient.delete('/Users/$id', includeAuth: true);
+    logout();
+  }
+
+  /// Get full profile data
+  Future<Map<String, dynamic>?> getProfile() async {
+    try {
+      final response = await _apiClient.get('/profile', includeAuth: true);
+      return response;
+    } catch (e) {
+      print('Error fetching profile: $e');
+      return null;
+    }
+  }
+
+  /// Update user subscription
+  Future<void> updateSubscription(int id, Map<String, dynamic> data) async {
+    await _apiClient.put('/Subscriptions/$id', body: data, includeAuth: true);
   }
 
   /// Get current user subscription
